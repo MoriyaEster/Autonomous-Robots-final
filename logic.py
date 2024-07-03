@@ -20,6 +20,7 @@ class Drone:
         self.x = x
         self.y = y
         self.history = []
+        self.sensor_history = set()  # Use a set to avoid duplicate points
         self.is_in_return = False
         self.directions = [(1, 0), (-1, 0), (0, -1), (0, 1)]  # right, left, up, down
         self.current_direction = (1, 0)  # Start moving to the right
@@ -40,6 +41,7 @@ class Drone:
             self.history.append((self.x, self.y))
             self.x = new_x
             self.y = new_y
+            self.update_sensor_history()
         else:
             self.turn_90_degrees()
 
@@ -70,20 +72,24 @@ class Drone:
             for step in range(1, self.sensor_range + 1):
                 check_x = self.x + dx * step
                 check_y = self.y + dy * step
-                if self.is_inside_track(check_x, check_y):
+                if 0 <= check_x < self.window_width and 0 <= check_y < self.window_height and self.matrix[check_y][check_x] == 1:
                     distance = step
                 else:
                     break
             readings.append(distance)
         return readings
 
-    def draw_sensors(self, screen, color):
+    def update_sensor_history(self):
         sensor_readings = self.get_sensor_readings()
         for (dx, dy), distance in zip(self.directions, sensor_readings):
             for step in range(1, distance + 1):
                 check_x = self.x + dx * step
                 check_y = self.y + dy * step
-                pygame.draw.circle(screen, color, (check_x, check_y), 2)
+                self.sensor_history.add((check_x, check_y))
+
+    def draw_sensors(self, screen, color):
+        for point in self.sensor_history:
+            pygame.draw.circle(screen, color, point, 2)
 
     def draw_history(self, screen, color):
         for point in self.history:
