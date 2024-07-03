@@ -21,6 +21,7 @@ class Drone:
         self.y = y
         self.history = []
         self.sensor_history = set()  # Use a set to avoid duplicate points
+        self.path_history = []  # List to store the path the drone takes
         self.is_in_return = False
         self.directions = [(1, 0), (-1, 0), (0, -1), (0, 1)]  # right, left, up, down
         self.current_direction = (1, 0)  # Start moving to the right
@@ -39,14 +40,22 @@ class Drone:
 
         if self.is_inside_track(new_x, new_y):
             self.history.append((self.x, self.y))
+            self.path_history.append((self.x, self.y))  # Add to path history
             self.x = new_x
             self.y = new_y
             self.update_sensor_history()
+            if self.should_turn_around():
+                print(f"Turning around at ({self.x}, {self.y})")
+                self.turn_around()
         else:
             self.turn_90_degrees()
 
     def turn_90_degrees(self):
         self.direction_index = (self.direction_index + 1) % 4
+        self.current_direction = self.directions[self.direction_index]
+
+    def turn_around(self):
+        self.direction_index = (self.direction_index + 2) % 4
         self.current_direction = self.directions[self.direction_index]
 
     def is_inside_track(self, x, y):
@@ -87,6 +96,19 @@ class Drone:
                 check_y = self.y + dy * step
                 self.sensor_history.add((check_x, check_y))
 
+    def should_turn_around(self):
+        if (self.x, self.y) in self.path_history:
+            for dx, dy in self.directions:
+                for step in range(1, self.sensor_range + 1):
+                    check_x = self.x + dx * step
+                    check_y = self.y + dy * step
+                    if (check_x, check_y) not in self.sensor_history:
+                        print(f"Missing yellow at ({check_x}, {check_y})")
+                        return True
+            print(f"Turning around at ({self.x}, {self.y}) - All yellow detected")
+            return True
+        return False
+
     def draw_sensors(self, screen, color):
         for point in self.sensor_history:
             pygame.draw.circle(screen, color, point, 2)
@@ -94,6 +116,10 @@ class Drone:
     def draw_history(self, screen, color):
         for point in self.history:
             pygame.draw.circle(screen, color, point, 2)
+
+    def draw_path(self, screen, color):
+        if len(self.path_history) > 1:
+            pygame.draw.lines(screen, color, False, self.path_history, 2)
 
     def draw(self, screen, color):
         pygame.draw.circle(screen, color, (self.x, self.y), 10)

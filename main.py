@@ -13,6 +13,7 @@ DRONE_COLOR = (255, 0, 0)
 TRACK_COLOR = (50, 50, 50)
 HISTORY_COLOR = (255, 255, 0)
 SENSOR_COLOR = (255, 255, 0)
+PATH_COLOR = (0, 255, 0)  # Green color for the path
 
 VELOCITY = 2
 DRONE_RADIUS = 10  # 10 centimeters
@@ -56,6 +57,7 @@ def main():
         draw_track(screen, track, TRACK_COLOR)
         drone.draw_history(screen, HISTORY_COLOR)
         drone.draw_sensors(screen, SENSOR_COLOR)
+        drone.draw_path(screen, PATH_COLOR)  # Draw the path
         drone.draw(screen, DRONE_COLOR)
 
         pygame.display.flip()
