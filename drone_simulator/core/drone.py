@@ -67,6 +67,12 @@ class Drone:
             'position': self.optical_flow.get_position(),
             'speed': self.speed_sensor.get_speed(),
         }
+
+        # Mark the sensor absorbed areas on the map
+        environment.mark_sensor_area(self.position, data['lidar_front'], self.rotation)
+        environment.mark_sensor_area(self.position, data['lidar_left'], (self.rotation - 90) % 360)
+        environment.mark_sensor_area(self.position, data['lidar_right'], (self.rotation + 90) % 360)
+
         return data
 
     def decide_next_move(self, sensor_data):

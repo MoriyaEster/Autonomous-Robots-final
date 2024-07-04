@@ -48,7 +48,8 @@ class Map:
                 y += 1
 
             if 0 <= x < self.map_array.shape[0] and 0 <= y < self.map_array.shape[1]:
-                self.map_array[int(x)][int(y)] = [255, 255, 0]  # Color in yellow
+                if not (self.map_array[int(x)][int(y)][0] == 0 and self.map_array[int(x)][int(y)][1] == 0 and self.map_array[int(x)][int(y)][2] == 0):
+                    self.map_array[int(x)][int(y)] = [255, 255, 0]  # Color in yellow
 
     def display_map(self, screen, drone_position):
         # Create a surface from the updated map_array
