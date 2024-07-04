@@ -1,4 +1,5 @@
 import random
+import networkx as nx
 from drone_simulator.sensors.lidar import Lidar
 from drone_simulator.sensors.gyroscope import Gyroscope
 from drone_simulator.sensors.optical_flow import OpticalFlow
@@ -14,9 +15,19 @@ class Drone:
         self.optical_flow = OpticalFlow()
         self.speed_sensor = Speed()
 
-        self.position = [125, 125]  # Initial position in the middle of the screen
+        # Initial position in an open area
+        self.position = [130, 130]
         self.rotation = 0
         self.map = map
+
+        # Graph to represent the map
+        self.graph = nx.Graph()
+        self.current_node = None
+        self.previous_node = None
+
+        # Track visits to nodes
+        self.node_visit_count = {}
+        self.stuck_counter = 0
 
     def move(self, direction):
         speed = self.speed_sensor.get_speed()
@@ -35,11 +46,18 @@ class Drone:
             self.rotation = (self.rotation - 90) % 360
         elif direction == "right":
             self.rotation = (self.rotation + 90) % 360
+        elif direction == "backward":
+            self.rotation = (self.rotation + 180) % 360
 
         # Ensure new position is valid (not colliding with obstacles)
         if not self.is_collision(new_position):
             self.position = new_position
+            self.stuck_counter = 0  # Reset stuck counter
+            self.add_node_if_significant_change()
+            print(f"Moved {direction} to {self.position}")
         else:
+            print(f"Collision detected when moving {direction} from {self.position}")
+            self.stuck_counter += 1  # Increment stuck counter
             return False  # Indicate that the move resulted in a collision
 
         # Update sensors' positions
@@ -75,21 +93,59 @@ class Drone:
 
         return data
 
+    def add_node_if_significant_change(self):
+        significant_change_detected = False
+        sensor_data = self.sense(self.map)
+        for direction in ['lidar_front', 'lidar_left', 'lidar_right']:
+            if sensor_data[direction] < self.radius * 3:
+                significant_change_detected = True
+                break
+
+        if significant_change_detected:
+            node_id = tuple(self.position)
+            if node_id not in self.graph:
+                self.graph.add_node(node_id, position=self.position, visits=0)
+                if self.current_node is not None:
+                    self.graph.add_edge(self.current_node, node_id)
+                self.previous_node = self.current_node
+                self.current_node = node_id
+                self.node_visit_count[node_id] = 0
+
+            self.node_visit_count[node_id] += 1
+
     def decide_next_move(self, sensor_data):
-        front_distance = sensor_data['lidar_front']
-        left_distance = sensor_data['lidar_left']
-        right_distance = sensor_data['lidar_right']
-
-        # Adding buffer distance to account for drone's radius
-        buffer_distance = self.radius + 10
-
-        if front_distance > buffer_distance:
-            if not self.move("forward"):  # Try to move forward
-                if left_distance > right_distance:
-                    self.move("left")  # If collision, turn left if more space on the left
-                else:
-                    self.move("right")  # Else, turn right
-        elif left_distance > right_distance:
-            self.move("left")
+        if self.node_visit_count.get(self.current_node, 0) > 3:
+            self.attempt_alternate_moves()
         else:
-            self.move("right")
+            front_distance = sensor_data['lidar_front']
+            left_distance = sensor_data['lidar_left']
+            right_distance = sensor_data['lidar_right']
+            buffer_distance = self.radius + 10
+
+            if front_distance > buffer_distance:
+                if not self.move("forward"):  # Try to move forward
+                    self.change_direction(left_distance, right_distance)
+            else:
+                self.change_direction(left_distance, right_distance)
+
+        # Fallback if the drone is stuck for too long
+        if self.stuck_counter > 5:
+            print("Drone is stuck. Trying to turn around.")
+            self.stuck_counter = 0  # Reset counter after turning around
+            self.attempt_alternate_moves()
+
+    def change_direction(self, left_distance, right_distance):
+        if left_distance > right_distance:
+            if not self.move("left"):  # Try to move left
+                if not self.move("right"):  # If left is blocked, try moving right
+                    self.move("backward")  # If both are blocked, try moving backward
+        else:
+            if not self.move("right"):  # Try to move right
+                if not self.move("left"):  # If right is blocked, try moving left
+                    self.move("backward")  # If both are blocked, try moving backward
+
+    def attempt_alternate_moves(self):
+        if not self.move("backward"):
+            if not self.move("left"):
+                if not self.move("right"):
+                    self.move("forward")
