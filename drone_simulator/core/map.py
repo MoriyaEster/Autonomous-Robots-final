@@ -35,7 +35,23 @@ class Map:
 
         return distance
 
+    def mark_sensor_area(self, position, distance, direction):
+        x, y = position
+        for i in range(int(distance)):
+            if direction == 0:  # Front
+                y -= 1
+            elif direction == 270:  # Left
+                x -= 1
+            elif direction == 90:  # Right
+                x += 1
+            elif direction == 180:  # Backward
+                y += 1
+
+            if 0 <= x < self.map_array.shape[0] and 0 <= y < self.map_array.shape[1]:
+                self.map_array[int(x)][int(y)] = [255, 255, 0]  # Color in yellow
+
     def display_map(self, screen, drone_position):
-        # Display map with current drone position and path
-        screen.blit(self.map_data, (0, 0))
+        # Create a surface from the updated map_array
+        updated_map_surface = pygame.surfarray.make_surface(self.map_array)
+        screen.blit(updated_map_surface, (0, 0))
         pygame.draw.circle(screen, (0, 255, 0), drone_position, 10)  # Draw drone with radius 10
