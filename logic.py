@@ -1,8 +1,7 @@
-import time
-from PIL import Image
-from concurrent.futures import ThreadPoolExecutor
 import pygame
-
+import networkx as nx
+import random
+from concurrent.futures import ThreadPoolExecutor
 
 def image_to_matrix(img, threshold=128):
     img = img.point(lambda p: p > threshold and 1)  # Convert to binary using threshold
@@ -14,25 +13,37 @@ def image_to_matrix(img, threshold=128):
         matrix.append(row)
     return matrix
 
-
 class Drone:
     def __init__(self, x, y, velocity, radius, matrix, window_width, window_height):
         self.x = x
         self.y = y
         self.history = []
-        self.sensor_history = set()  # Use a set to avoid duplicate points
-        self.path_history = []  # List to store the path the drone takes
+        self.sensor_history = set()
+        self.path_history = []
         self.is_in_return = False
-        self.directions = [(1, 0), (-1, 0), (0, -1), (0, 1)]  # right, left, up, down
-        self.current_direction = (1, 0)  # Start moving to the right
-        self.direction_index = 0  # Index in the directions list
+        self.directions = [(1, 0), (-1, 0), (0, -1), (0, 1)]
+        self.current_direction = (1, 0)
+        self.direction_index = 0
         self.velocity = velocity
         self.radius = radius
         self.matrix = matrix
         self.window_width = window_width
         self.window_height = window_height
         self.executor = ThreadPoolExecutor()
-        self.sensor_range = 3 * 10  # 3 meters, assuming 1 unit = 10 pixels
+        self.sensor_range = 3 * 10
+        self.node_counter = 0
+        self.current_node = None
+        self.graph = nx.Graph()
+        self.add_node(x, y)
+
+    def add_node(self, x, y):
+        node_id = self.node_counter
+        self.graph.add_node(node_id, pos=(x, y))
+        self.node_counter += 1
+        return node_id
+
+    def add_edge(self, node1, node2):
+        self.graph.add_edge(node1, node2)
 
     def move(self):
         new_x = self.x + self.current_direction[0] * self.velocity
@@ -40,30 +51,65 @@ class Drone:
 
         if self.is_inside_track(new_x, new_y):
             self.history.append((self.x, self.y))
-            self.path_history.append((self.x, self.y))  # Add to path history
+            self.path_history.append((self.x, self.y))
             self.x = new_x
             self.y = new_y
             self.update_sensor_history()
+
             if self.should_turn_around():
                 print(f"Turning around at ({self.x}, {self.y})")
                 self.turn_around()
+
+            if self.should_place_node():
+                new_node = self.add_node(new_x, new_y)
+                if self.current_node is not None:
+                    self.add_edge(self.current_node, new_node)
+                self.current_node = new_node
         else:
             self.turn_90_degrees()
+
+    def should_place_node(self):
+        sensor_readings = self.get_sensor_readings()
+        if max(sensor_readings) - min(sensor_readings) > self.sensor_range / 2:
+            return True
+        return False
 
     def turn_90_degrees(self):
         self.direction_index = (self.direction_index + 1) % 4
         self.current_direction = self.directions[self.direction_index]
 
     def turn_around(self):
-        self.direction_index = (self.direction_index + 2) % 4
+        least_yellow = float('inf')
+        best_direction_index = self.direction_index
+
+        for i in range(4):
+            direction_index = (self.direction_index + i) % 4
+            direction = self.directions[direction_index]
+            yellow_count = self.count_yellow_in_direction(direction)
+
+            if yellow_count < least_yellow:
+                least_yellow = yellow_count
+                best_direction_index = direction_index
+
+        self.direction_index = best_direction_index
         self.current_direction = self.directions[self.direction_index]
 
+    def count_yellow_in_direction(self, direction):
+        dx, dy = direction
+        count = 0
+        for step in range(1, self.sensor_range + 1):
+            check_x = self.x + dx * step
+            check_y = self.y + dy * step
+            if (check_x, check_y) in self.sensor_history:
+                count += 1
+            else:
+                break
+        return count
+
     def is_inside_track(self, x, y):
-        # Check if the center of the drone is within the track
         if x < 0 or x >= self.window_width or y < 0 or y >= self.window_height or self.matrix[y][x] == 0:
             return False
 
-        # Check if the drone's radius touches any walls
         for dx in range(-self.radius, self.radius + 1):
             for dy in range(-self.radius, self.radius + 1):
                 distance = (dx ** 2 + dy ** 2) ** 0.5
@@ -123,7 +169,16 @@ class Drone:
 
     def draw(self, screen, color):
         pygame.draw.circle(screen, color, (self.x, self.y), 10)
+        self.draw_graph(screen)
 
+    def draw_graph(self, screen):
+        pos = nx.get_node_attributes(self.graph, 'pos')
+        for node, position in pos.items():
+            pygame.draw.circle(screen, (0, 0, 255), position, 5)
+        for edge in self.graph.edges:
+            start_pos = pos[edge[0]]
+            end_pos = pos[edge[1]]
+            pygame.draw.line(screen, (0, 0, 255), start_pos, end_pos, 1)
 
 def build_track_from_matrix(matrix, cell_size):
     track = []
@@ -133,7 +188,6 @@ def build_track_from_matrix(matrix, cell_size):
                 rect = pygame.Rect(x * cell_size, y * cell_size, cell_size, cell_size)
                 track.append(rect)
     return track
-
 
 def find_closest_track_point(start_x, start_y, track):
     min_distance = float('inf')

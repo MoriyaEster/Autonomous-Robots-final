@@ -2,6 +2,8 @@ import pygame
 import time
 from PIL import Image
 from logic import Drone, image_to_matrix, build_track_from_matrix, find_closest_track_point
+from ui import draw_track
+from graph import Graph
 
 image_path = "p11.png"
 img = Image.open(image_path).convert('L')  # Convert to grayscale
@@ -13,7 +15,7 @@ DRONE_COLOR = (255, 0, 0)
 TRACK_COLOR = (50, 50, 50)
 HISTORY_COLOR = (255, 255, 0)
 SENSOR_COLOR = (255, 255, 0)
-PATH_COLOR = (0, 255, 0)  # Green color for the path
+PATH_COLOR = (0, 255, 0)
 
 VELOCITY = 2
 DRONE_RADIUS = 10  # 10 centimeters
@@ -21,12 +23,6 @@ DRONE_RADIUS = 10  # 10 centimeters
 pygame.init()
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption('3D Modeling with Drone Sensors')
-
-
-def draw_track(screen, track, track_color):
-    for segment in track:
-        pygame.draw.rect(screen, track_color, segment)
-
 
 def main():
     matrix = image_to_matrix(img)
@@ -44,8 +40,6 @@ def main():
     clock = pygame.time.Clock()
     running = True
 
-    start_time = time.time()
-
     while running:
         screen.fill(BACKGROUND_COLOR)
 
@@ -53,18 +47,18 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
 
+        keys = pygame.key.get_pressed()
         drone.move()
         draw_track(screen, track, TRACK_COLOR)
         drone.draw_history(screen, HISTORY_COLOR)
         drone.draw_sensors(screen, SENSOR_COLOR)
-        drone.draw_path(screen, PATH_COLOR)  # Draw the path
+        drone.draw_path(screen, PATH_COLOR)
         drone.draw(screen, DRONE_COLOR)
 
         pygame.display.flip()
         clock.tick(30)
 
     pygame.quit()
-
 
 if __name__ == "__main__":
     main()
