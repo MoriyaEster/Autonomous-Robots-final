@@ -79,32 +79,8 @@ class Drone:
         self.current_direction = self.directions[self.direction_index]
 
     def turn_around(self):
-        least_yellow = float('inf')
-        best_direction_index = self.direction_index
-
-        for i in range(4):
-            direction_index = (self.direction_index + i) % 4
-            direction = self.directions[direction_index]
-            yellow_count = self.count_yellow_in_direction(direction)
-
-            if yellow_count < least_yellow:
-                least_yellow = yellow_count
-                best_direction_index = direction_index
-
-        self.direction_index = best_direction_index
+        self.direction_index = (self.direction_index + 2) % 4
         self.current_direction = self.directions[self.direction_index]
-
-    def count_yellow_in_direction(self, direction):
-        dx, dy = direction
-        count = 0
-        for step in range(1, self.sensor_range + 1):
-            check_x = self.x + dx * step
-            check_y = self.y + dy * step
-            if (check_x, check_y) in self.sensor_history:
-                count += 1
-            else:
-                break
-        return count
 
     def is_inside_track(self, x, y):
         if x < 0 or x >= self.window_width or y < 0 or y >= self.window_height or self.matrix[y][x] == 0:
