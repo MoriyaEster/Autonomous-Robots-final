@@ -1,36 +1,33 @@
 import random
-from typing import List, Union
 import networkx as nx
-from networkx import Graph
 from drone_simulator.sensors.lidar import Lidar
 from drone_simulator.sensors.gyroscope import Gyroscope
 from drone_simulator.sensors.optical_flow import OpticalFlow
 from drone_simulator.sensors.speed import Speed
-from drone_simulator.core.map import Map
 
 class Drone:
-    def __init__(self, map: Map):
+    def __init__(self, map):
         self.radius = 10  # Drone radius
-        self.lidar_front: Lidar = Lidar()
-        self.lidar_left: Lidar = Lidar()
-        self.lidar_right: Lidar = Lidar()
-        self.gyroscope: Gyroscope = Gyroscope()
-        self.optical_flow: OpticalFlow = OpticalFlow()
-        self.speed_sensor: Speed = Speed()
+        self.lidar_front = Lidar()
+        self.lidar_left = Lidar()
+        self.lidar_right = Lidar()
+        self.gyroscope = Gyroscope()
+        self.optical_flow = OpticalFlow()
+        self.speed_sensor = Speed()
 
         # Initial position in an open area
-        self.position: List[float] = [130.0, 130.0]
-        self.rotation: int = 0
-        self.map: Map = map
+        self.position = [130, 130]
+        self.rotation = 0
+        self.map = map
 
         # Graph to represent the map
-        self.graph: Graph = nx.Graph()
-        self.current_node: Union[tuple[int, int], None] = None
-        self.previous_node: Union[tuple[int, int], None] = None
+        self.graph = nx.Graph()
+        self.current_node = None
+        self.previous_node = None
 
         # Track visits to nodes
-        self.node_visit_count: dict[Union[tuple[int, int], None], int] = {}
-        self.stuck_counter: int = 0
+        self.node_visit_count = {}
+        self.stuck_counter = 0
 
     def move(self, direction):
         speed = self.speed_sensor.get_speed()
@@ -57,6 +54,7 @@ class Drone:
             self.position = new_position
             self.stuck_counter = 0  # Reset stuck counter
             self.add_node_if_significant_change()
+            self.check_gray_value()
             # self.add_nodes_in_open_space()  # Add nodes in open space
             print(f"Moved {direction} to {self.position}")
         else:
@@ -69,6 +67,14 @@ class Drone:
         self.gyroscope.set_rotation(self.rotation)
         return True  # Indicate successful move
 
+    def check_gray_value(self):
+        x, y = int(self.position[0]), int(self.position[1])
+        gray_value = self.map.map_array[x, y][0]
+        if gray_value != 125:  # Check if the position is different from the track color
+            if gray_value > 125:
+                print("↑ Fly Higher")
+            elif gray_value < 125:
+                print("↓ Fly Lower")
 
     def is_collision(self, position):
         x, y = position
@@ -81,14 +87,14 @@ class Drone:
                         return True
         return False
 
-    def sense(self, environment: Map):
-        data: dict[str, Union[int, float]] = {
+    def sense(self, environment):
+        data = {
             'lidar_front': self.lidar_front.measure_distance(self.rotation, environment, self.position),
             'lidar_left': self.lidar_left.measure_distance((self.rotation - 90) % 360, environment, self.position),
             'lidar_right': self.lidar_right.measure_distance((self.rotation + 90) % 360, environment, self.position),
-            # 'rotation': self.gyroscope.get_rotation(),
-            # 'position': self.optical_flow.get_position(),
-            # 'speed': self.speed_sensor.get_speed(),
+            'rotation': self.gyroscope.get_rotation(),
+            'position': self.optical_flow.get_position(),
+            'speed': self.speed_sensor.get_speed(),
         }
 
         # Mark the sensor absorbed areas on the map
