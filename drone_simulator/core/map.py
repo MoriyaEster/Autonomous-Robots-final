@@ -1,3 +1,4 @@
+from typing import List
 import pygame
 from pygame import Surface
 import networkx as nx
@@ -16,7 +17,6 @@ class Map:
 
     def get_distance(self, direction, position):
         x, y = position
-        radius = 10  # Drone radius
         max_distance = 300  # Sensor range
 
         distance = 0
@@ -59,7 +59,6 @@ class Map:
         # Create a surface from the updated map_array
         updated_map_surface = pygame.surfarray.make_surface(self.map_array)
         screen.blit(updated_map_surface, (0, 0))
-        pygame.draw.circle(screen, (0, 255, 0), drone_position, 10)  # Draw drone with radius 10
 
         # Draw the graph
         for edge in graph.edges:
@@ -69,4 +68,17 @@ class Map:
 
         for node in graph.nodes:
             pos = graph.nodes[node]['position']
-            pygame.draw.circle(screen, (0, 0, 255), pos, 5)
+            pygame.draw.circle(screen, (0, 0, 255), pos, 3)
+
+        pygame.draw.circle(screen, (0, 255, 0), drone_position, 7)  # Draw drone with radius 10
+        
+    def is_point_in_valid_spot(self, point: tuple[int, int]):
+        x, y = point
+        radius = 7
+        for i in range(-radius, radius + 1):
+            for j in range(-radius, radius + 1):
+                if (i**2 + j**2) <= radius**2:  # Check within the circle of the drone's radius
+                    if self.map_array[int(x + i)][int(y + j)][0] == 0 and self.map_array[int(x + i)][int(y + j)][1] == 0 and self.map_array[int(x + i)][int(y + j)][2] == 0:
+                        return False
+        return True
+        return not (self.map_array[int(x)][int(y)][0] == 0 and self.map_array[int(x)][int(y)][1] == 0 and self.map_array[int(x)][int(y)][2] == 0)

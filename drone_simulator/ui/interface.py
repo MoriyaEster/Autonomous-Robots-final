@@ -1,3 +1,4 @@
+from time import sleep
 import pygame
 from pygame import Surface
 from drone_simulator.core.drone import Drone
@@ -26,3 +27,4 @@ class DroneSimulatorUI:
             sensor_data = self.drone.sense(self.map)
             self.drone.decide_next_move(sensor_data)
             self.update()
+            # sleep(0.1)
