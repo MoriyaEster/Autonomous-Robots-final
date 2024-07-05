@@ -17,11 +17,11 @@ from drone_simulator.core.map import Map
 from drone_simulator.ui.interface import DroneSimulatorUI
 
 class Simulation:
-    def __init__(self, map_file):
+    def __init__(self, map_file: str):
         pygame.init()
-        self.map = Map(map_file)
-        self.drone = Drone(self.map)
-        self.ui = DroneSimulatorUI(self.drone, self.map)
+        self.map: Map = Map(map_file)
+        self.drone: Drone = Drone(self.map)
+        self.ui: DroneSimulatorUI = DroneSimulatorUI(self.drone, self.map)
 
     def run(self):
         self.ui.run()

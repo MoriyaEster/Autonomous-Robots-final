@@ -1,10 +1,11 @@
 import pygame
+from pygame import Surface
 import networkx as nx
 
 class Map:
-    def __init__(self, map_file):
-        self.map_file = map_file
-        self.map_data = self.load_map()
+    def __init__(self, map_file: str):
+        self.map_file: str = map_file
+        self.map_data: Surface = self.load_map()
         self.map_array = pygame.surfarray.array3d(self.map_data)  # Load the map as a 3D array (RGB)
 
     def load_map(self):

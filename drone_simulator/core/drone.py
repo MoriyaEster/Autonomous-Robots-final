@@ -1,33 +1,36 @@
 import random
+from typing import List, Union
 import networkx as nx
+from networkx import Graph
 from drone_simulator.sensors.lidar import Lidar
 from drone_simulator.sensors.gyroscope import Gyroscope
 from drone_simulator.sensors.optical_flow import OpticalFlow
 from drone_simulator.sensors.speed import Speed
+from drone_simulator.core.map import Map
 
 class Drone:
-    def __init__(self, map):
+    def __init__(self, map: Map):
         self.radius = 10  # Drone radius
-        self.lidar_front = Lidar()
-        self.lidar_left = Lidar()
-        self.lidar_right = Lidar()
-        self.gyroscope = Gyroscope()
-        self.optical_flow = OpticalFlow()
-        self.speed_sensor = Speed()
+        self.lidar_front: Lidar = Lidar()
+        self.lidar_left: Lidar = Lidar()
+        self.lidar_right: Lidar = Lidar()
+        self.gyroscope: Gyroscope = Gyroscope()
+        self.optical_flow: OpticalFlow = OpticalFlow()
+        self.speed_sensor: Speed = Speed()
 
         # Initial position in an open area
-        self.position = [130, 130]
-        self.rotation = 0
-        self.map = map
+        self.position: List[float] = [130.0, 130.0]
+        self.rotation: int = 0
+        self.map: Map = map
 
         # Graph to represent the map
-        self.graph = nx.Graph()
-        self.current_node = None
-        self.previous_node = None
+        self.graph: Graph = nx.Graph()
+        self.current_node: Union[tuple[int, int], None] = None
+        self.previous_node: Union[tuple[int, int], None] = None
 
         # Track visits to nodes
-        self.node_visit_count = {}
-        self.stuck_counter = 0
+        self.node_visit_count: dict[Union[tuple[int, int], None], int] = {}
+        self.stuck_counter: int = 0
 
     def move(self, direction):
         speed = self.speed_sensor.get_speed()
@@ -78,14 +81,14 @@ class Drone:
                         return True
         return False
 
-    def sense(self, environment):
-        data = {
+    def sense(self, environment: Map):
+        data: dict[str, Union[int, float]] = {
             'lidar_front': self.lidar_front.measure_distance(self.rotation, environment, self.position),
             'lidar_left': self.lidar_left.measure_distance((self.rotation - 90) % 360, environment, self.position),
             'lidar_right': self.lidar_right.measure_distance((self.rotation + 90) % 360, environment, self.position),
-            'rotation': self.gyroscope.get_rotation(),
-            'position': self.optical_flow.get_position(),
-            'speed': self.speed_sensor.get_speed(),
+            # 'rotation': self.gyroscope.get_rotation(),
+            # 'position': self.optical_flow.get_position(),
+            # 'speed': self.speed_sensor.get_speed(),
         }
 
         # Mark the sensor absorbed areas on the map
