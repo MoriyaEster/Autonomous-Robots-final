@@ -102,16 +102,26 @@ class Drone:
                 break
 
         if significant_change_detected:
-            node_id = tuple(self.position)
+            node_id = (int(self.position[0]), int(self.position[1]))
             if node_id not in self.graph:
-                self.graph.add_node(node_id, position=self.position, visits=0)
-                if self.current_node is not None:
-                    self.graph.add_edge(self.current_node, node_id)
-                self.previous_node = self.current_node
-                self.current_node = node_id
-                self.node_visit_count[node_id] = 0
+                if self.is_node_far_enough(node_id):
+                    self.graph.add_node(node_id, position=self.position.copy(), visits=0)
+                    if self.current_node is not None:
+                        self.graph.add_edge(self.current_node, node_id)
+                    self.previous_node = self.current_node
+                    self.current_node = node_id
+                    self.node_visit_count[node_id] = 0  # Initialize visit count
 
-            self.node_visit_count[node_id] += 1
+            # Increment visit count
+            if node_id in self.node_visit_count:
+                self.node_visit_count[node_id] += 1
+
+    def is_node_far_enough(self, new_node_id):
+        for node in self.graph.nodes:
+            distance = ((new_node_id[0] - node[0])**2 + (new_node_id[1] - node[1])**2)**0.5
+            if distance < 50:  # Ensure nodes are at least 50 cm apart
+                return False
+        return True
 
     def decide_next_move(self, sensor_data):
         if self.node_visit_count.get(self.current_node, 0) > 3:

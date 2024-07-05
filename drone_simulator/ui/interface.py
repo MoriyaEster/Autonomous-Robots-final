@@ -7,7 +7,7 @@ class DroneSimulatorUI:
         self.screen = pygame.display.set_mode((800, 600))
 
     def update(self):
-        # Update the display and pass the graph
+        # Update the display
         self.map.display_map(self.screen, self.drone.position, self.drone.graph)
         pygame.display.flip()
 
