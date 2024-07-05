@@ -1,3 +1,16 @@
+import sys
+from pathlib import Path
+
+# Determine the current directory
+current_dir = Path(__file__).resolve().parent
+
+# Determine the parent directory
+parent_dir = current_dir.parent.parent
+
+print(parent_dir)
+# Add the parent directory to sys.path
+sys.path.insert(0, str(parent_dir))
+
 import pygame
 from drone_simulator.core.drone import Drone
 from drone_simulator.core.map import Map

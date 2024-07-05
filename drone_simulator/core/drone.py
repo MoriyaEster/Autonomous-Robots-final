@@ -54,7 +54,7 @@ class Drone:
             self.position = new_position
             self.stuck_counter = 0  # Reset stuck counter
             self.add_node_if_significant_change()
-            self.add_nodes_in_open_space()  # Add nodes in open space
+            # self.add_nodes_in_open_space()  # Add nodes in open space
             print(f"Moved {direction} to {self.position}")
         else:
             print(f"Collision detected when moving {direction} from {self.position}")
