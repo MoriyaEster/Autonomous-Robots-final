@@ -31,7 +31,7 @@ class Drone:
 
     def move(self, direction):
         speed = self.speed_sensor.get_speed()
-        noise = random.uniform(-0.05, 0.05)  # Adding noise to movement
+        noise = random.uniform(-0.02, 0.02)  # Adjust noise to make it more realistic
         new_position = self.position.copy()
         if direction == "forward":
             if self.rotation == 0:
@@ -54,6 +54,7 @@ class Drone:
             self.position = new_position
             self.stuck_counter = 0  # Reset stuck counter
             self.add_node_if_significant_change()
+            self.add_nodes_in_open_space()  # Add nodes in open space
             print(f"Moved {direction} to {self.position}")
         else:
             print(f"Collision detected when moving {direction} from {self.position}")
@@ -64,6 +65,7 @@ class Drone:
         self.optical_flow.set_position(self.position)
         self.gyroscope.set_rotation(self.rotation)
         return True  # Indicate successful move
+
 
     def is_collision(self, position):
         x, y = position
@@ -122,6 +124,32 @@ class Drone:
             if distance < 50:  # Ensure nodes are at least 50 cm apart
                 return False
         return True
+
+    def add_nodes_in_open_space(self):
+        directions = {
+            0: (0, -1),  # Front (up)
+            90: (1, 0),  # Right
+            180: (0, 1),  # Backward (down)
+            270: (-1, 0)  # Left
+        }
+
+        for direction, (dx, dy) in directions.items():
+            x, y = self.position
+            for i in range(100):  # 1 meter = 100 cm
+                x += dx
+                y += dy
+
+                if self.is_collision([x, y]):
+                    break
+
+            node_id = (int(x), int(y))
+            if node_id not in self.graph and self.is_node_far_enough(node_id):
+                self.graph.add_node(node_id, position=[x, y], visits=0)
+                if self.current_node is not None:
+                    self.graph.add_edge(self.current_node, node_id)
+                self.previous_node = self.current_node
+                self.current_node = node_id
+                self.node_visit_count[node_id] = 0  # Initialize visit count
 
     def decide_next_move(self, sensor_data):
         if self.node_visit_count.get(self.current_node, 0) > 3:
