@@ -1,3 +1,4 @@
+from time import sleep
 import pygame
 from pygame import Surface
 from drone_simulator.core.drone import Drone
@@ -10,7 +11,7 @@ class DroneSimulatorUI:
 
     def update(self):
         # Update the display
-        self.map.display_map(self.screen, self.drone.position, self.drone.graph)
+        self.map.display_map(self.screen, self.drone.position, self.drone.graph, self.drone.radius)
         pygame.display.flip()
 
     def handle_events(self) -> bool:
@@ -26,3 +27,5 @@ class DroneSimulatorUI:
             sensor_data = self.drone.sense(self.map)
             self.drone.decide_next_move(sensor_data)
             self.update()
+            # uncomment for slower rendering
+            # sleep(0.015)

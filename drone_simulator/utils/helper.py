@@ -1,4 +1,5 @@
 import random
+import pygame
 
 def add_noise(value, epsilon):
     return value + random.uniform(-epsilon, epsilon)

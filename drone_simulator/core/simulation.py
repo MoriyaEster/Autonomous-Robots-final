@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from time import sleep
 
 # Determine the current directory
 current_dir = Path(__file__).resolve().parent
@@ -17,16 +18,16 @@ from drone_simulator.core.map import Map
 from drone_simulator.ui.interface import DroneSimulatorUI
 
 class Simulation:
-    def __init__(self, map_file):
+    def __init__(self, map_file: str, starting_point: tuple[int, int], drone_radius: int):
         pygame.init()
-        self.map = Map(map_file)
-        self.drone = Drone(self.map)
-        self.ui = DroneSimulatorUI(self.drone, self.map)
+        self.map: Map = Map(map_file)
+        self.drone: Drone = Drone(self.map, [starting_point[0], starting_point[1]], drone_radius)
+        self.ui: DroneSimulatorUI = DroneSimulatorUI(self.drone, self.map)
 
     def run(self):
         self.ui.run()
         pygame.quit()
 
 if __name__ == "__main__":
-    sim = Simulation('p11.png')  # Update with the correct map path
+    sim = Simulation('p12.png', (70, 70), 10)  # Update with the correct map path
     sim.run()
