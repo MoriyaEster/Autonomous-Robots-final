@@ -20,6 +20,7 @@ class Drone:
         self.optical_flow: OpticalFlow = OpticalFlow()
         self.speed_sensor: Speed = Speed()
         self.min_distance_between_points: int = 10
+        self.current_path = []
 
         # Initial position in an open area
         self.position: List[float] = [130.0, 130.0]
@@ -253,12 +254,15 @@ class Drone:
         self.generate_nodes_based_on_sensor_data(sensor_data)
         next_node = self.find_closest_unvisited_node()
         path = None
-        try:
-            path = nx.shortest_path(self.graph, source=(int(self.position[0]), int(self.position[1])), target=next_node)[1:]
-        except Exception as e:
-            pass
+        if(self.current_path):
+            path = self.current_path
+        else:
+            try:
+                path = nx.shortest_path(self.graph, source=(int(self.position[0]), int(self.position[1])), target=next_node)[1:]
+            except Exception as e:
+                pass
         if(path):
-            next_node = path[0]
+            next_node = path.pop(0)
         if(next_node):
             if(self.get_distance_between_points((int(self.position[0]), int(self.position[1])), next_node) > self.min_distance_between_points * 2):
                 print("problem!!!!!")
@@ -270,6 +274,8 @@ class Drone:
                 self.graph.nodes[next_node]['visited'] = True
         else:
             print("DONE")
+        if(path):
+            self.current_path = path
             
                     
     # def decide_next_move(self, sensor_data: dict[str, Union[int, float]]):
