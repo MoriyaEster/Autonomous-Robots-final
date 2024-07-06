@@ -1,3 +1,4 @@
+import math
 from typing import List
 import pygame
 from pygame import Surface
@@ -56,7 +57,7 @@ class Map:
                         self.map_array[int(x)][int(y)][2] != 0:
                     self.map_array[int(x)][int(y)] = [255, 255, 0]  # Color in yellow
 
-    def display_map(self, screen, drone_position, graph):
+    def display_map(self, screen, drone_position, graph, drone_radius):
         # Create a surface from the updated map_array
         updated_map_surface = pygame.surfarray.make_surface(self.map_array)
         screen.blit(updated_map_surface, (0, 0))
@@ -76,17 +77,20 @@ class Map:
         for location in self.drone_history_locations:
             pygame.draw.circle(screen, (255, 255, 0), location, 3)
 
-        pygame.draw.circle(screen, (0, 255, 0), drone_position, 5)  # Draw drone with radius 5
+        pygame.draw.circle(screen, (0, 255, 0), drone_position, drone_radius)  # Draw drone with radius 5
         
-    def is_point_in_valid_spot(self, point: tuple[int, int]):
+    
+    def get_distance_between_points(self, point, second_point) -> float:
+        return math.sqrt((point[0] - second_point[0]) ** 2 + (point[1] - second_point[1]) ** 2)
+        
+    def is_point_in_valid_spot(self, point: tuple[int, int], drone_radius):
         x, y = point
-        radius = 4
+        radius = drone_radius // 2 + 1
         for i in range(-radius, radius + 1):
             for j in range(-radius, radius + 1):
-                if (i**2 + j**2) <= radius**2:  # Check within the circle of the drone's radius
+                if(self.get_distance_between_points(point, (int(x+i), int(y+j))) <= radius):
                     if(int(x+i) >= len(self.map_array) or int(y+j) >= len(self.map_array[int(x+i)])):
                         return False
                     if self.map_array[int(x + i)][int(y + j)][0] == 0 and self.map_array[int(x + i)][int(y + j)][1] == 0 and self.map_array[int(x + i)][int(y + j)][2] == 0:
                         return False
         return True
-        return not (self.map_array[int(x)][int(y)][0] == 0 and self.map_array[int(x)][int(y)][1] == 0 and self.map_array[int(x)][int(y)][2] == 0)

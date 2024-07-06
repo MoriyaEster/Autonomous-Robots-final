@@ -11,7 +11,7 @@ class DroneSimulatorUI:
 
     def update(self):
         # Update the display
-        self.map.display_map(self.screen, self.drone.position, self.drone.graph)
+        self.map.display_map(self.screen, self.drone.position, self.drone.graph, self.drone.radius)
         pygame.display.flip()
 
     def handle_events(self) -> bool:

@@ -1,8 +1,10 @@
+from collections import deque
 import math
 import random
-from typing import List, Union
+from typing import List, Tuple, Union
 import networkx as nx
 from networkx import Graph
+import pygame
 from drone_simulator.sensors.lidar import Lidar
 from drone_simulator.sensors.gyroscope import Gyroscope
 from drone_simulator.sensors.optical_flow import OpticalFlow
@@ -10,20 +12,20 @@ from drone_simulator.sensors.speed import Speed
 from drone_simulator.core.map import Map
 
 class Drone:
-    def __init__(self, map: Map):
-        self.radius = 10  # Drone radius
+    def __init__(self, map: Map, starting_position: List[float]):
+        self.radius = 7  # Drone radius
         self.lidar_front: Lidar = Lidar()
         self.lidar_back: Lidar = Lidar()
         self.lidar_left: Lidar = Lidar()
         self.lidar_right: Lidar = Lidar()
         self.gyroscope: Gyroscope = Gyroscope()
         self.optical_flow: OpticalFlow = OpticalFlow()
-        self.speed_sensor: Speed = Speed()
-        self.min_distance_between_points: int = 10
+        self.speed_sensor: Speed = Speed(self.radius)
+        self.min_distance_between_points: int = max(self.radius // 2 + 1, 6)
         self.current_path = []
 
         # Initial position in an open area
-        self.position: List[float] = [130.0, 130.0]
+        self.position: List[float] = starting_position
         self.rotation: int = 0
         self.map: Map = map
 
@@ -54,7 +56,7 @@ class Drone:
             new_position[0] += speed + noise
 
         # Ensure new position is valid (not colliding with obstacles)
-        if new_position != self.position and self.map.is_point_in_valid_spot((int(new_position[0]), int(new_position[1]))):
+        if new_position != self.position and self.map.is_point_in_valid_spot((int(new_position[0]), int(new_position[1])), self.radius):
             self.position = new_position
             self.stuck_counter = 0  # Reset stuck counter
             # self.add_node_if_significant_change()
@@ -91,32 +93,9 @@ class Drone:
 
         return data
 
-    def add_node_if_significant_change(self):
-        significant_change_detected = False
-        sensor_data = self.sense(self.map)
-        for direction in ['lidar_front', 'lidar_left', 'lidar_right']:
-            if sensor_data[direction] < self.radius * 3:
-                significant_change_detected = True
-                break
-
-        if significant_change_detected:
-            node_id = (int(self.position[0]), int(self.position[1]))
-            if node_id not in self.graph:
-                if self.is_node_far_enough(node_id):
-                    self.graph.add_node(node_id, position=self.position.copy(), visits=0)
-                    if self.current_node is not None:
-                        self.graph.add_edge(self.current_node, node_id)
-                    self.previous_node = self.current_node
-                    self.current_node = node_id
-                    self.node_visit_count[node_id] = 0  # Initialize visit count
-
-            # Increment visit count
-            if node_id in self.node_visit_count:
-                self.node_visit_count[node_id] += 1
-
     def is_node_far_enough(self, new_node_id):
         for node in self.graph.nodes:
-            distance = self.get_distance_between_points(new_node_id, node)
+            distance = self.map.get_distance_between_points(new_node_id, node)
             if distance < self.min_distance_between_points:  # Ensure nodes are at least 10 cm apart
                 return False
         return True
@@ -135,7 +114,7 @@ class Drone:
                 x += dx
                 y += dy
 
-                if self.map.is_point_in_valid_spot((int(x), int(y))):
+                if self.map.is_point_in_valid_spot((int(x), int(y)), self.radius):
                     break
 
             node_id = (int(x), int(y))
@@ -152,7 +131,7 @@ class Drone:
         
         # add my current position
         current_position_node = (int(self.position.copy()[0]), int(self.position.copy()[1]))
-        if current_position_node not in self.graph and self.map.is_point_in_valid_spot(current_position_node):
+        if current_position_node not in self.graph and self.map.is_point_in_valid_spot(current_position_node, self.radius):
             self.graph.add_node(current_position_node, position=current_position_node, visited=True)
         
         front_distance = sensor_data['lidar_front']
@@ -161,40 +140,40 @@ class Drone:
         right_distance = sensor_data['lidar_right']
         # print(sensor_data)
         
-        for step in range(self.min_distance_between_points, int(front_distance), self.min_distance_between_points):
+        for step in range(0, int(front_distance), self.min_distance_between_points):
             new_y_position = self.position[1] - step
             node_id = (int(self.position[0]), int(new_y_position))
-            if node_id not in self.graph and self.map.is_point_in_valid_spot(node_id):
+            if node_id not in self.graph and self.map.is_point_in_valid_spot(node_id, self.radius):
                 if self.is_node_far_enough(node_id):
                     self.graph.add_node(node_id, position=node_id, visited=False)
                     self.generate_edges_for_graph_by_node(node_id)
         
-        for step in range(self.min_distance_between_points, int(back_distance), self.min_distance_between_points):
+        for step in range(0, int(back_distance), self.min_distance_between_points):
             new_y_position = self.position[1] + step
             node_id = (int(self.position[0]), int(new_y_position))
-            if node_id not in self.graph and self.map.is_point_in_valid_spot(node_id):
+            if node_id not in self.graph and self.map.is_point_in_valid_spot(node_id, self.radius):
                 if self.is_node_far_enough(node_id):
                     self.graph.add_node(node_id, position=node_id, visited=False)
                     self.generate_edges_for_graph_by_node(node_id)
         
-        for step in range(self.min_distance_between_points, int(left_distance), self.min_distance_between_points):
+        for step in range(0, int(left_distance), self.min_distance_between_points):
             new_x_position = self.position[0] - step
             node_id = (int(new_x_position), int(self.position[1]))
-            if node_id not in self.graph and self.map.is_point_in_valid_spot(node_id):
+            if node_id not in self.graph and self.map.is_point_in_valid_spot(node_id, self.radius):
                 if self.is_node_far_enough(node_id):
                     self.graph.add_node(node_id, position=node_id, visited=False)
                     self.generate_edges_for_graph_by_node(node_id)
                     
-        for step in range(self.min_distance_between_points, int(right_distance), self.min_distance_between_points):
+        for step in range(0, int(right_distance), self.min_distance_between_points):
             new_x_position = self.position[0] + step
             node_id = (int(new_x_position), int(self.position[1]))
-            if node_id not in self.graph and self.map.is_point_in_valid_spot(node_id):
+            if node_id not in self.graph and self.map.is_point_in_valid_spot(node_id, self.radius):
                 if self.is_node_far_enough(node_id):
                     self.graph.add_node(node_id, position=node_id, visited=False)
                     self.generate_edges_for_graph_by_node(node_id)
                     
 
-    def get_non_neighbors_of_a_node(self, node):
+    def get_non_neighbors_of_a_node_within_min_distance(self, node):
         if node not in self.graph:
             raise ValueError("Node not found in the graph")
         
@@ -210,15 +189,15 @@ class Drone:
         # Nodes without an edge to the specified node
         non_neighbors = all_nodes - neighbors
         
-        return list(filter(lambda x: self.get_distance_between_points(node, x) <= self.min_distance_between_points * 2, list(non_neighbors)))
+        return list(filter(lambda x: self.map.get_distance_between_points(node, x) <= self.min_distance_between_points , list(non_neighbors)))
 
     def generate_edges_for_graph_by_node(self, node):
-        non_neighbors = self.get_non_neighbors_of_a_node(node)
+        non_neighbors = self.get_non_neighbors_of_a_node_within_min_distance(node)
         for non_neighbor in non_neighbors:
             self.graph.add_edge(node, non_neighbor)
             
                                             
-    def find_closest_unvisited_node(self) -> Union[tuple[int, int], None]:
+    def find_closest_unvisited_node_by_euclidean_distance(self) -> Union[tuple[int, int], None]:
         min_distance = float('inf')
         closest_node = None
 
@@ -226,12 +205,45 @@ class Drone:
         for node_id, node_data in self.graph.nodes(data=True):
             if not node_data['visited']:
                 node_position = node_id  # Assuming node_id is a tuple (x, y)
-                distance = self.get_distance_between_points(self.position, node_position)
+                distance = self.map.get_distance_between_points(self.position, node_position)
                 if distance < min_distance:
                     min_distance = distance
                     closest_node = node_id
 
         return closest_node
+    
+    def find_closest_unvisited_node_by_bfs(self) -> Union[Tuple[int, int], None]:
+        # Step 1: Get all unvisited nodes
+        unvisited_nodes = [node for node, data in self.graph.nodes(data=True) if not data['visited']]
+        
+        if not unvisited_nodes:
+            return None
+
+        # Step 2: Perform BFS to find the closest unvisited node
+        queue = deque([self.position])
+        visited = set()
+
+        while queue:
+            current_node = queue.popleft()
+            current_node = (int(current_node[0]), int(current_node[1]))
+            if current_node in visited:
+                continue
+
+            # Mark the current node as visited
+            visited.add(current_node)
+
+            # Check if the current node is one of the unvisited nodes
+            if current_node in unvisited_nodes:
+                return current_node
+
+            # Add all neighbors to the queue
+            neighbors = self.graph.neighbors(current_node)
+            for neighbor in neighbors:
+                if neighbor not in visited:
+                    queue.append(neighbor)
+
+        # If no unvisited node is found, return None
+        return None
     
     def move_one_step_towards(self, current_position, desired_position):
         current_x, current_y = current_position
@@ -246,13 +258,10 @@ class Drone:
         new_y = current_y + (speed if dy > 0 else -speed)
         
         return new_x, new_y
-    
-    def get_distance_between_points(self, point, second_point) -> float:
-        return math.sqrt((point[0] - second_point[0]) ** 2 + (point[1] - second_point[1]) ** 2)
         
     def decide_next_move(self, sensor_data: dict[str, Union[int, float]]):
         self.generate_nodes_based_on_sensor_data(sensor_data)
-        next_node = self.find_closest_unvisited_node()
+        next_node = self.find_closest_unvisited_node_by_bfs()
         path = None
         if(self.current_path):
             path = self.current_path
@@ -264,8 +273,13 @@ class Drone:
         if(path):
             next_node = path.pop(0)
         if(next_node):
-            if(self.get_distance_between_points((int(self.position[0]), int(self.position[1])), next_node) > self.min_distance_between_points * 2):
-                print("problem!!!!!")
+            if(self.map.get_distance_between_points((int(self.position[0]), int(self.position[1])), next_node) > self.speed_sensor.get_speed()):
+                new_position = self.move_one_step_towards(self.position, [next_node[0], next_node[1]])
+                if(self.map.is_point_in_valid_spot(new_position, self.radius)):
+                    self.position = [new_position[0], new_position[1]]
+                else:
+                    print("im stuck here")
+                    self.attempt_alternate_moves()
                 
             if(next_node[0] == int(self.position[0]) and next_node[1] == int(self.position[1])):
                 self.graph.nodes[next_node]['visited'] = True
@@ -280,7 +294,7 @@ class Drone:
                     
     # def decide_next_move(self, sensor_data: dict[str, Union[int, float]]):
     #     self.generate_nodes_based_on_sensor_data(sensor_data)
-    #     next_node = self.find_closest_unvisited_node()
+    #     next_node = self.find_closest_unvisited_node_by_euclidean_distance()
     #     path = None
     #     try:
     #         path = nx.shortest_path(self.graph, source=(int(self.position[0]), int(self.position[1])), target=next_node)[1:]
@@ -291,7 +305,7 @@ class Drone:
     #     if(next_node):
     #         if(next_node[0] == int(self.position[0]) and next_node[1] == int(self.position[1])):
     #             self.graph.nodes[next_node]['visited'] = True
-    #         elif(self.get_distance_between_points(self.position, next_node) <= self.speed_sensor.get_speed()):
+    #         elif(self.map.get_distance_between_points(self.position, next_node) <= self.speed_sensor.get_speed()):
     #             self.position = [next_node[0], next_node[1]]
     #             self.graph.nodes[next_node]['visited'] = True
     #         else:
