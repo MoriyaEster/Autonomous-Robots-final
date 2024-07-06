@@ -18,10 +18,10 @@ from drone_simulator.core.map import Map
 from drone_simulator.ui.interface import DroneSimulatorUI
 
 class Simulation:
-    def __init__(self, map_file: str, starting_point: tuple[int, int]):
+    def __init__(self, map_file: str, starting_point: tuple[int, int], drone_radius: int):
         pygame.init()
         self.map: Map = Map(map_file)
-        self.drone: Drone = Drone(self.map, [starting_point[0], starting_point[1]])
+        self.drone: Drone = Drone(self.map, [starting_point[0], starting_point[1]], drone_radius)
         self.ui: DroneSimulatorUI = DroneSimulatorUI(self.drone, self.map)
 
     def run(self):
@@ -29,5 +29,5 @@ class Simulation:
         pygame.quit()
 
 if __name__ == "__main__":
-    sim = Simulation('p11.png', (130, 130))  # Update with the correct map path
+    sim = Simulation('p12.png', (70, 70), 10)  # Update with the correct map path
     sim.run()

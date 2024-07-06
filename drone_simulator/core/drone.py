@@ -12,8 +12,8 @@ from drone_simulator.sensors.speed import Speed
 from drone_simulator.core.map import Map
 
 class Drone:
-    def __init__(self, map: Map, starting_position: List[float]):
-        self.radius = 7  # Drone radius
+    def __init__(self, map: Map, starting_position: List[float], drone_radius: int = 7):
+        self.radius = drone_radius  # Drone radius
         self.lidar_front: Lidar = Lidar()
         self.lidar_back: Lidar = Lidar()
         self.lidar_left: Lidar = Lidar()
@@ -23,6 +23,7 @@ class Drone:
         self.speed_sensor: Speed = Speed(self.radius)
         self.min_distance_between_points: int = max(self.radius // 2 + 1, 6)
         self.current_path = []
+        self.home_point = starting_position
 
         # Initial position in an open area
         self.position: List[float] = starting_position
@@ -80,16 +81,7 @@ class Drone:
             'lidar_backward': self.lidar_back.measure_distance(180, environment, self.position),
             'lidar_left': self.lidar_left.measure_distance(270, environment, self.position),
             'lidar_right': self.lidar_right.measure_distance(90, environment, self.position),
-            # 'rotation': self.gyroscope.get_rotation(),
-            # 'position': self.optical_flow.get_position(),
-            # 'speed': self.speed_sensor.get_speed(),
         }
-
-        # Mark the sensor absorbed areas on the map
-        # environment.mark_sensor_area(self.position, data['lidar_front'], self.rotation)
-        # environment.mark_sensor_area(self.position, data['lidar_backward'], (self.rotation + 180) % 360)
-        # environment.mark_sensor_area(self.position, data['lidar_left'], (self.rotation - 90) % 360)
-        # environment.mark_sensor_area(self.position, data['lidar_right'], (self.rotation + 90) % 360)
 
         return data
 
