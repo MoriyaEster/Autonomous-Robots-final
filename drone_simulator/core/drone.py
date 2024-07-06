@@ -40,20 +40,17 @@ class Drone:
         noise = random.uniform(-0.02, 0.02)  # Adjust noise to make it more realistic
         new_position = self.position.copy()
         if direction == "forward":
-            if self.rotation == 0:
-                new_position[1] -= speed + noise
-            elif self.rotation == 90:
-                new_position[0] += speed + noise
-            elif self.rotation == 180:
-                new_position[1] += speed + noise
-            elif self.rotation == 270:
-                new_position[0] -= speed + noise
-        elif direction == "left":
-            self.rotation = (self.rotation - 90) % 360
-        elif direction == "right":
-            self.rotation = (self.rotation + 90) % 360
+            self.rotation = 0
+            new_position[1] -= speed + noise
         elif direction == "backward":
-            self.rotation = (self.rotation + 180) % 360
+            self.rotation = 180
+            new_position[1] += speed + noise
+        elif direction == "left":
+            self.rotation = 270
+            new_position[0] -= speed + noise
+        elif direction == "right":
+            self.rotation = 90
+            new_position[0] += speed + noise
 
         # Ensure new position is valid (not colliding with obstacles)
         if new_position != self.position and self.map.is_point_in_valid_spot((int(new_position[0]), int(new_position[1]))):
@@ -61,9 +58,9 @@ class Drone:
             self.stuck_counter = 0  # Reset stuck counter
             # self.add_node_if_significant_change()
             # self.add_nodes_in_open_space()  # Add nodes in open space
-            print(f"Moved {direction} to {self.position}")
+            # print(f"Moved {direction} to {self.position}")
         else:
-            print(f"Collision detected when moving {direction} from {self.position}")
+            # print(f"Collision detected when moving {direction} from {self.position}")
             self.stuck_counter += 1  # Increment stuck counter
             return False  # Indicate that the move resulted in a collision
 
@@ -76,20 +73,20 @@ class Drone:
 
     def sense(self, environment: Map) -> dict[str, Union[int, float]]:
         data: dict[str, Union[int, float]] = {
-            'lidar_front': self.lidar_front.measure_distance(self.rotation, environment, self.position),
-            'lidar_backward': self.lidar_back.measure_distance((self.rotation + 180) % 360, environment, self.position),
-            'lidar_left': self.lidar_left.measure_distance((self.rotation - 90) % 360, environment, self.position),
-            'lidar_right': self.lidar_right.measure_distance((self.rotation + 90) % 360, environment, self.position),
+            'lidar_front': self.lidar_front.measure_distance(0, environment, self.position),
+            'lidar_backward': self.lidar_back.measure_distance(180, environment, self.position),
+            'lidar_left': self.lidar_left.measure_distance(270, environment, self.position),
+            'lidar_right': self.lidar_right.measure_distance(90, environment, self.position),
             # 'rotation': self.gyroscope.get_rotation(),
             # 'position': self.optical_flow.get_position(),
             # 'speed': self.speed_sensor.get_speed(),
         }
 
         # Mark the sensor absorbed areas on the map
-        environment.mark_sensor_area(self.position, data['lidar_front'], self.rotation)
-        environment.mark_sensor_area(self.position, data['lidar_backward'], (self.rotation + 180) % 360)
-        environment.mark_sensor_area(self.position, data['lidar_left'], (self.rotation - 90) % 360)
-        environment.mark_sensor_area(self.position, data['lidar_right'], (self.rotation + 90) % 360)
+        # environment.mark_sensor_area(self.position, data['lidar_front'], self.rotation)
+        # environment.mark_sensor_area(self.position, data['lidar_backward'], (self.rotation + 180) % 360)
+        # environment.mark_sensor_area(self.position, data['lidar_left'], (self.rotation - 90) % 360)
+        # environment.mark_sensor_area(self.position, data['lidar_right'], (self.rotation + 90) % 360)
 
         return data
 
@@ -118,7 +115,7 @@ class Drone:
 
     def is_node_far_enough(self, new_node_id):
         for node in self.graph.nodes:
-            distance = ((new_node_id[0] - node[0])**2 + (new_node_id[1] - node[1])**2)**0.5
+            distance = self.get_distance_between_points(new_node_id, node)
             if distance < self.min_distance_between_points:  # Ensure nodes are at least 10 cm apart
                 return False
         return True
@@ -161,7 +158,7 @@ class Drone:
         back_distance = sensor_data['lidar_backward']
         left_distance = sensor_data['lidar_left']
         right_distance = sensor_data['lidar_right']
-        print(sensor_data)
+        # print(sensor_data)
         
         for step in range(self.min_distance_between_points, int(front_distance), self.min_distance_between_points):
             new_y_position = self.position[1] - step
@@ -169,7 +166,7 @@ class Drone:
             if node_id not in self.graph and self.map.is_point_in_valid_spot(node_id):
                 if self.is_node_far_enough(node_id):
                     self.graph.add_node(node_id, position=node_id, visited=False)
-                    # self.graph.add_edge(node_id, current_position_node)
+                    self.generate_edges_for_graph_by_node(node_id)
         
         for step in range(self.min_distance_between_points, int(back_distance), self.min_distance_between_points):
             new_y_position = self.position[1] + step
@@ -177,7 +174,7 @@ class Drone:
             if node_id not in self.graph and self.map.is_point_in_valid_spot(node_id):
                 if self.is_node_far_enough(node_id):
                     self.graph.add_node(node_id, position=node_id, visited=False)
-                    # self.graph.add_edge(node_id, current_position_node)
+                    self.generate_edges_for_graph_by_node(node_id)
         
         for step in range(self.min_distance_between_points, int(left_distance), self.min_distance_between_points):
             new_x_position = self.position[0] - step
@@ -185,7 +182,7 @@ class Drone:
             if node_id not in self.graph and self.map.is_point_in_valid_spot(node_id):
                 if self.is_node_far_enough(node_id):
                     self.graph.add_node(node_id, position=node_id, visited=False)
-                    # self.graph.add_edge(node_id, current_position_node)
+                    self.generate_edges_for_graph_by_node(node_id)
                     
         for step in range(self.min_distance_between_points, int(right_distance), self.min_distance_between_points):
             new_x_position = self.position[0] + step
@@ -193,8 +190,33 @@ class Drone:
             if node_id not in self.graph and self.map.is_point_in_valid_spot(node_id):
                 if self.is_node_far_enough(node_id):
                     self.graph.add_node(node_id, position=node_id, visited=False)
-                    # self.graph.add_edge(node_id, current_position_node)
-    
+                    self.generate_edges_for_graph_by_node(node_id)
+                    
+
+    def get_non_neighbors_of_a_node(self, node):
+        if node not in self.graph:
+            raise ValueError("Node not found in the graph")
+        
+        # Get all nodes in the graph
+        all_nodes = set(self.graph.nodes)
+        
+        # Get all neighbors of the specified node
+        neighbors = set(self.graph.neighbors(node))
+        
+        # Add the node itself to the neighbors set to exclude it from the result
+        neighbors.add(node)
+        
+        # Nodes without an edge to the specified node
+        non_neighbors = all_nodes - neighbors
+        
+        return list(filter(lambda x: self.get_distance_between_points(node, x) <= self.min_distance_between_points * 2, list(non_neighbors)))
+
+    def generate_edges_for_graph_by_node(self, node):
+        non_neighbors = self.get_non_neighbors_of_a_node(node)
+        for non_neighbor in non_neighbors:
+            self.graph.add_edge(node, non_neighbor)
+            
+                                            
     def find_closest_unvisited_node(self) -> Union[tuple[int, int], None]:
         min_distance = float('inf')
         closest_node = None
@@ -218,14 +240,9 @@ class Drone:
         dx = desired_x - current_x
         dy = desired_y - current_y
         
-        # Move one step in the x direction if the x difference is larger
-        if abs(dx) > abs(dy):
-            new_x = current_x + (1 if dx > 0 else -1)
-            new_y = current_y
-        else:
-            # Move one step in the y direction if the y difference is larger or equal
-            new_x = current_x
-            new_y = current_y + (1 if dy > 0 else -1)
+        speed = self.speed_sensor.get_speed()
+        new_x = current_x + (speed if dx > 0 else -speed) 
+        new_y = current_y + (speed if dy > 0 else -speed)
         
         return new_x, new_y
     
@@ -235,22 +252,51 @@ class Drone:
     def decide_next_move(self, sensor_data: dict[str, Union[int, float]]):
         self.generate_nodes_based_on_sensor_data(sensor_data)
         next_node = self.find_closest_unvisited_node()
+        path = None
+        try:
+            path = nx.shortest_path(self.graph, source=(int(self.position[0]), int(self.position[1])), target=next_node)[1:]
+        except Exception as e:
+            pass
+        if(path):
+            next_node = path[0]
         if(next_node):
-            self.position = [next_node[0], next_node[1]]
-            self.graph.nodes[next_node]['visited'] = True
-            # if(next_node[0] == int(self.position[0]) and next_node[1] == int(self.position[1])):
-            #     self.graph.nodes[next_node]['visited'] = True
-            # elif(self.get_distance_between_points(self.position, next_node) < self.speed_sensor.get_speed()):
-            #     self.position = [next_node[0], next_node[1]]
-            #     self.graph.nodes[next_node]['visited'] = True
-            # else:
-            #     new_position = self.move_one_step_towards(self.position, [next_node[0], next_node[1]])
-            #     if(self.map.is_point_in_valid_spot(new_position)):
-            #         self.position = [new_position[0], new_position[1]]
+            if(self.get_distance_between_points((int(self.position[0]), int(self.position[1])), next_node) > self.min_distance_between_points * 2):
+                print("problem!!!!!")
+                
+            if(next_node[0] == int(self.position[0]) and next_node[1] == int(self.position[1])):
+                self.graph.nodes[next_node]['visited'] = True
+            else:
+                self.position = [next_node[0], next_node[1]]
+                self.graph.nodes[next_node]['visited'] = True
         else:
-            self.attempt_alternate_moves()
-        # TODO: make generate_nodes_based_on_sensor_data also create appropriate edges.
-        # TODO: write logic that moves to the closest unvisited node.
+            print("DONE")
+            
+                    
+    # def decide_next_move(self, sensor_data: dict[str, Union[int, float]]):
+    #     self.generate_nodes_based_on_sensor_data(sensor_data)
+    #     next_node = self.find_closest_unvisited_node()
+    #     path = None
+    #     try:
+    #         path = nx.shortest_path(self.graph, source=(int(self.position[0]), int(self.position[1])), target=next_node)[1:]
+    #     except Exception as e:
+    #         pass
+    #     if(path):
+    #         next_node = path.pop()
+    #     if(next_node):
+    #         if(next_node[0] == int(self.position[0]) and next_node[1] == int(self.position[1])):
+    #             self.graph.nodes[next_node]['visited'] = True
+    #         elif(self.get_distance_between_points(self.position, next_node) <= self.speed_sensor.get_speed()):
+    #             self.position = [next_node[0], next_node[1]]
+    #             self.graph.nodes[next_node]['visited'] = True
+    #         else:
+    #             new_position = self.move_one_step_towards(self.position, [next_node[0], next_node[1]])
+    #             if(self.map.is_point_in_valid_spot(new_position)):
+    #                 self.position = [new_position[0], new_position[1]]
+    #             else:
+    #                 print("im stuck here")
+    #                 self.attempt_alternate_moves()
+    #     else:
+    #         self.attempt_alternate_moves()
     
     # def decide_next_move(self, sensor_data: dict[str, Union[int, float]]):
     #     if self.node_visit_count.get(self.current_node, 0) > 3:

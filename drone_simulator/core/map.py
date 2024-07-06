@@ -8,6 +8,7 @@ class Map:
         self.map_file: str = map_file
         self.map_data: Surface = self.load_map()
         self.map_array = pygame.surfarray.array3d(self.map_data)  # Load the map as a 3D array (RGB)
+        self.drone_history_locations: List[tuple[int, int]] = []
 
     def load_map(self):
         # Load map from file and convert to a suitable format
@@ -64,20 +65,27 @@ class Map:
         for edge in graph.edges:
             start_pos = graph.nodes[edge[0]]['position']
             end_pos = graph.nodes[edge[1]]['position']
-            pygame.draw.line(screen, (0, 0, 255), start_pos, end_pos, 1)
+            pygame.draw.line(screen, (255, 0, 0), start_pos, end_pos, 2)
 
         for node in graph.nodes:
             pos = graph.nodes[node]['position']
             pygame.draw.circle(screen, (0, 0, 255), pos, 3)
+        
+        self.drone_history_locations.append(drone_position)
+        
+        for location in self.drone_history_locations:
+            pygame.draw.circle(screen, (255, 255, 0), location, 3)
 
-        pygame.draw.circle(screen, (0, 255, 0), drone_position, 7)  # Draw drone with radius 10
+        pygame.draw.circle(screen, (0, 255, 0), drone_position, 5)  # Draw drone with radius 5
         
     def is_point_in_valid_spot(self, point: tuple[int, int]):
         x, y = point
-        radius = 7
+        radius = 4
         for i in range(-radius, radius + 1):
             for j in range(-radius, radius + 1):
                 if (i**2 + j**2) <= radius**2:  # Check within the circle of the drone's radius
+                    if(int(x+i) >= len(self.map_array) or int(y+j) >= len(self.map_array[int(x+i)])):
+                        return False
                     if self.map_array[int(x + i)][int(y + j)][0] == 0 and self.map_array[int(x + i)][int(y + j)][1] == 0 and self.map_array[int(x + i)][int(y + j)][2] == 0:
                         return False
         return True
