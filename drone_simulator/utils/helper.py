@@ -20,3 +20,8 @@ def load_map(file_path):
 
 def draw_drone(screen, position, color=(0, 255, 0), radius=5):
     pygame.draw.circle(screen, color, position, radius)
+
+def draw_battery_dead_message(screen):
+    font = pygame.font.Font(None, 30)
+    text = font.render('Battery Died', True, (255, 0, 0))
+    screen.blit(text, (100, 500))
