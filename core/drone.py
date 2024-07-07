@@ -13,7 +13,7 @@ from core.map import Map
 from sensors.battery import Battery
 
 class Drone:
-    def __init__(self, map: Map, drone_radius: int = 10, battery_duration_in_seconds: int = 30):
+    def __init__(self, map: Map, drone_radius: int, battery_duration_in_seconds: int, speed_in_pixels_per_move: int):
         self.starting_position: List[float] = [130.0, 130.0]
         self.radius = drone_radius  # Drone radius
         self.lidar_front: Lidar = Lidar()
@@ -22,7 +22,7 @@ class Drone:
         self.lidar_right: Lidar = Lidar()
         self.gyroscope: Gyroscope = Gyroscope()
         self.optical_flow: OpticalFlow = OpticalFlow()
-        self.speed_sensor: Speed = Speed(self.radius)
+        self.speed_sensor: Speed = Speed(speed_in_pixels_per_move)
         self.battery: Battery = Battery(battery_duration_in_seconds)
         self.returning_home = False
         self.home_path = []
@@ -129,6 +129,11 @@ class Drone:
             'lidar_left': self.lidar_left.measure_distance(270, environment, self.position),
             'lidar_right': self.lidar_right.measure_distance(90, environment, self.position),
         }
+        
+        environment.mark_sensor_area(self.position, data['lidar_front'], 0)
+        environment.mark_sensor_area(self.position, data['lidar_backward'], 180)
+        environment.mark_sensor_area(self.position, data['lidar_left'], 270)
+        environment.mark_sensor_area(self.position, data['lidar_right'], 90)
 
         return data
 

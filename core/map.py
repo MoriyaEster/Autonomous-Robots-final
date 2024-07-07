@@ -109,7 +109,7 @@ class Map:
                 # Ensure we only color non-obstacle areas
                 if self.map_array[int(x)][int(y)][0] != 0 or self.map_array[int(x)][int(y)][1] != 0 or \
                         self.map_array[int(x)][int(y)][2] != 0:
-                    self.map_array[int(x)][int(y)] = [255, 255, 0]  # Color in yellow
+                    self.map_array[int(x)][int(y)] = [255, 128, 0]  # Color in yellow
 
     def display_map(self, screen, drone_position, graph, drone_radius):
         """
@@ -141,7 +141,7 @@ class Map:
         self.drone_history_locations.append(drone_position)
 
         for location in self.drone_history_locations:
-            pygame.draw.circle(screen, (255, 255, 0), location, 3)
+            pygame.draw.circle(screen, (0, 213, 255), location, 3)
 
         pygame.draw.circle(screen, (0, 255, 0), drone_position, drone_radius)  # Draw drone with radius 5
 
