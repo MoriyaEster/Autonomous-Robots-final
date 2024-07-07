@@ -13,8 +13,8 @@ from drone_simulator.core.map import Map
 from drone_simulator.sensors.battery import Battery
 
 class Drone:
-    def __init__(self, map: Map, drone_radius: int = 7, battery = 5):
-        self.starting_position: List[int] = [130, 130]
+    def __init__(self, map: Map, drone_radius: int = 7, battery: int = 5):
+        self.starting_position: List[float] = [130.0, 130.0]
         self.radius = drone_radius  # Drone radius
         self.lidar_front: Lidar = Lidar()
         self.lidar_back: Lidar = Lidar()
@@ -23,14 +23,14 @@ class Drone:
         self.gyroscope: Gyroscope = Gyroscope()
         self.optical_flow: OpticalFlow = OpticalFlow()
         self.speed_sensor: Speed = Speed(self.radius)
-        self.battery: float = Battery(battery)
+        self.battery: Battery = Battery(battery)
         self.min_distance_between_points: int = max(self.radius // 2 + 1, 6)
         self.current_path = []
         self.home_point = self.starting_position
 
         # Initial position in an open area
         self.map: Map = map
-        self.position: List[int] = self.find_valid_track_point(self.starting_position, self.map, self.radius)
+        self.position: List[float] = self.find_valid_track_point(self.starting_position, self.map, self.radius)
         self.home_point = self.position
         self.rotation: int = 0
 
@@ -43,13 +43,15 @@ class Drone:
         self.node_visit_count: dict[Union[tuple[int, int], None], int] = {}
         self.stuck_counter: int = 0
 
-    def find_valid_track_point(self, starting_position: List[int], map: Map, radius):
+    def find_valid_track_point(self, starting_position: List[float], map: Map, radius) -> List[float]:
         if map.is_point_in_valid_spot((int(starting_position[0]), int(starting_position[1])), radius):
             return starting_position
         invalid_point = True
+        
+        new_point = [0.0,0.0]
 
         while invalid_point:
-            center_x, center_y = random.randint(20,790), random.randint(20,585)
+            center_x, center_y = float(random.randint(20,790)), float(random.randint(20,585))
             new_point = [center_x, center_y]
             if map.is_point_in_valid_spot((int(new_point[0]), int(new_point[1])), radius):
                 invalid_point = False
@@ -227,7 +229,7 @@ class Drone:
         back_distance = sensor_data['lidar_backward']
         left_distance = sensor_data['lidar_left']
         right_distance = sensor_data['lidar_right']
-        # print(sensor_data)
+        print(sensor_data)
 
         for step in range(0, int(front_distance), self.min_distance_between_points):
             new_y_position = self.position[1] - step

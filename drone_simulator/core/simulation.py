@@ -18,7 +18,7 @@ from drone_simulator.core.map import Map
 from drone_simulator.ui.interface import DroneSimulatorUI
 
 class Simulation:
-    def __init__(self, map_file: str, drone_radius: int, battery: float):
+    def __init__(self, map_file: str, drone_radius: int, battery: int):
         pygame.init()
         self.map: Map = Map(map_file)
         self.drone: Drone = Drone(self.map, drone_radius, battery)
@@ -29,5 +29,5 @@ class Simulation:
         pygame.quit()
 
 if __name__ == "__main__":
-    sim = Simulation('p11.png', 10, 5)  # Update with the correct map path
+    sim = Simulation('tracks/p11.png', 10, 5)  # Update with the correct map path
     sim.run()
