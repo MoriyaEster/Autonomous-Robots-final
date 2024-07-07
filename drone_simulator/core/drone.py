@@ -12,7 +12,8 @@ from drone_simulator.sensors.speed import Speed
 from drone_simulator.core.map import Map
 
 class Drone:
-    def __init__(self, map: Map, starting_position: List[float], drone_radius: int = 7):
+    def __init__(self, map: Map, drone_radius: int = 7):
+        self.starting_position: List[int] = [130, 130]
         self.radius = drone_radius  # Drone radius
         self.lidar_front: Lidar = Lidar()
         self.lidar_back: Lidar = Lidar()
@@ -23,12 +24,13 @@ class Drone:
         self.speed_sensor: Speed = Speed(self.radius)
         self.min_distance_between_points: int = max(self.radius // 2 + 1, 6)
         self.current_path = []
-        self.home_point = starting_position
+        self.home_point = self.starting_position
 
         # Initial position in an open area
-        self.position: List[float] = starting_position
-        self.rotation: int = 0
         self.map: Map = map
+        self.position: List[int] = self.find_valid_track_point(self.starting_position, self.map, self.radius)
+        self.home_point = self.position
+        self.rotation: int = 0
 
         # Graph to represent the map
         self.graph: Graph = nx.Graph()
@@ -38,6 +40,19 @@ class Drone:
         # Track visits to nodes
         self.node_visit_count: dict[Union[tuple[int, int], None], int] = {}
         self.stuck_counter: int = 0
+
+    def find_valid_track_point(self, starting_position: List[int], map: Map, radius):
+        if map.is_point_in_valid_spot((int(starting_position[0]), int(starting_position[1])), radius):
+            return starting_position
+        invalid_point = True
+
+        while invalid_point:
+            center_x, center_y = random.randint(20,790), random.randint(20,585)
+            new_point = [center_x, center_y]
+            if map.is_point_in_valid_spot((int(new_point[0]), int(new_point[1])), radius):
+                invalid_point = False
+
+        return new_point
 
     def move(self, direction):
         speed = self.speed_sensor.get_speed()
