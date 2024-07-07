@@ -1,9 +1,9 @@
 from time import sleep
 import pygame
 from pygame import Surface
-from drone_simulator.core.drone import Drone
-from drone_simulator.core.map import Map
-from drone_simulator.utils.helper import draw_battery_dead_message, draw_battery_bar
+from core.drone import Drone
+from core.map import Map
+from utils.helper import draw_battery_dead_message, draw_battery_bar
 
 
 class DroneSimulatorUI:

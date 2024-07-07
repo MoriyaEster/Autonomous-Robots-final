@@ -5,16 +5,16 @@ from typing import List, Tuple, Union
 import networkx as nx
 from networkx import Graph
 import pygame
-from drone_simulator.sensors.lidar import Lidar
-from drone_simulator.sensors.gyroscope import Gyroscope
-from drone_simulator.sensors.optical_flow import OpticalFlow
-from drone_simulator.sensors.speed import Speed
-from drone_simulator.core.map import Map
-from drone_simulator.sensors.battery import Battery
+from sensors.lidar import Lidar
+from sensors.gyroscope import Gyroscope
+from sensors.optical_flow import OpticalFlow
+from sensors.speed import Speed
+from core.map import Map
+from sensors.battery import Battery
 
 class Drone:
-    def __init__(self, map: Map, drone_radius: int = 7, battery_duration: int = 5):
-        self.starting_position: List[int] = [130, 130]
+    def __init__(self, map: Map, drone_radius: int = 10, battery_duration_in_seconds: int = 30):
+        self.starting_position: List[float] = [130.0, 130.0]
         self.radius = drone_radius  # Drone radius
         self.lidar_front: Lidar = Lidar()
         self.lidar_back: Lidar = Lidar()
@@ -23,7 +23,7 @@ class Drone:
         self.gyroscope: Gyroscope = Gyroscope()
         self.optical_flow: OpticalFlow = OpticalFlow()
         self.speed_sensor: Speed = Speed(self.radius)
-        self.battery: Battery = Battery(battery_duration)
+        self.battery: Battery = Battery(battery_duration_in_seconds)
         self.returning_home = False
         self.home_path = []
         self.min_distance_between_points: int = max(self.radius // 2 + 1, 6)
@@ -33,7 +33,7 @@ class Drone:
 
         # Initial position in an open area
         self.map: Map = map
-        self.position: List[int] = self.home_point
+        self.position: List[float] = self.home_point
         self.home_point = self.position
         self.rotation: int = 0
 
@@ -113,7 +113,7 @@ class Drone:
         obstacle avoidance.
 
         Example:
-        >>> from drone_simulator.core.map import Map
+        >>> from core.map import Map
         >>> environment = Map('p11.png')
         >>> drone = Drone(environment, [50, 50], drone_radius=7)
         >>> drone.optical_flow.get_position() == drone.position
@@ -472,7 +472,6 @@ class Drone:
                 if self.map.is_point_in_valid_spot(new_position, self.radius):
                     self.position = [new_position[0], new_position[1]]
                 else:
-                    print("I'm stuck here")
                     self.attempt_alternate_moves()
 
             if next_node[0] == int(self.position[0]) and next_node[1] == int(self.position[1]):
@@ -480,31 +479,24 @@ class Drone:
             else:
                 self.position = [next_node[0], next_node[1]]
                 self.graph.nodes[next_node]['visited'] = True
-        else:
-            print("DONE")
         if path:
             self.current_path = path
 
     def calculate_path_to_home(self):
         if not self.graph.has_node(self.home_node):
-            print("Home node is not in the graph")
             return
 
         if not self.graph.has_node((int(self.position[0]), int(self.position[1]))):
-            print("Current position is not in the graph")
             return
 
         try:
             self.home_path = nx.shortest_path(self.graph, source=(int(self.position[0]), int(self.position[1])),
                                               target=self.home_node)
-            print("Path to home found:", self.home_path)
         except Exception as e:
-            print("No path to home found", e)
             self.returning_home = False
 
     def follow_path_to_home(self):
         if not self.home_path:
-            print("No path to home to follow")
             return
 
         next_node = self.home_path.pop(0)
@@ -515,7 +507,6 @@ class Drone:
                 if self.map.is_point_in_valid_spot(new_position, self.radius):
                     self.position = [new_position[0], new_position[1]]
                 else:
-                    print("I'm stuck here")
                     self.attempt_alternate_moves()
 
             if next_node[0] == int(self.position[0]) and next_node[1] == int(self.position[1]):
@@ -530,11 +521,9 @@ class Drone:
 
     def return_to_home(self):
         if not self.graph.has_node(self.home_node):
-            print("Home node is not in the graph")
             return
 
         if not self.graph.has_node((int(self.position[0]), int(self.position[1]))):
-            print("Current position is not in the graph")
             return
 
         try:
@@ -542,7 +531,6 @@ class Drone:
                                             target=self.home_node)
             print("Path to home found:", path_to_home)
         except Exception as e:
-            print("No path to home found", e)
             return
 
         for node in path_to_home:

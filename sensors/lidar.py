@@ -1,7 +1,7 @@
 import random
 from typing import List
 
-from drone_simulator.core.map import Map
+from core.map import Map
 
 class Lidar:
     def __init__(self, max_distance: int =300):

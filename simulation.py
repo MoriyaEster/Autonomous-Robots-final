@@ -13,15 +13,15 @@ print(parent_dir)
 sys.path.insert(0, str(parent_dir))
 
 import pygame
-from drone_simulator.core.drone import Drone
-from drone_simulator.core.map import Map
-from drone_simulator.ui.interface import DroneSimulatorUI
+from core.drone import Drone
+from core.map import Map
+from ui.interface import DroneSimulatorUI
 
 class Simulation:
-    def __init__(self, map_file: str, drone_radius: int, battery: int):
+    def __init__(self, map_file: str, drone_radius: int, battery_duration_in_seconds: int):
         pygame.init()
         self.map: Map = Map(map_file)
-        self.drone: Drone = Drone(self.map, drone_radius, battery)
+        self.drone: Drone = Drone(self.map, drone_radius, battery_duration_in_seconds)
         self.ui: DroneSimulatorUI = DroneSimulatorUI(self.drone, self.map)
 
     def run(self):
@@ -29,5 +29,5 @@ class Simulation:
         pygame.quit()
 
 if __name__ == "__main__":
-    sim = Simulation('tracks/p11.png', 10, 5)  # Update with the correct map path
+    sim = Simulation('tracks/p11.png', 10, 30)  # Update with the correct map path
     sim.run()

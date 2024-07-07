@@ -18,7 +18,6 @@ The Drone Simulator project is a Python-based simulation environment for autonom
 5. [Usage](#usage)
 6. [Project Structure](#project-structure)
 7. [Modules Description](#modules-description)
-8. [License](#license)
 
 ---
 
@@ -75,8 +74,6 @@ This will start the simulation with a predefined map and display the drone's nav
 ## Project Structure
 
 ```
-drone_simulator/
-│
 ├── core/
 │   ├── drone.py         # Drone class definition and behavior
 │   └── map.py           # Map class for handling map loading and processing
@@ -130,24 +127,3 @@ The main script that initializes the simulation. It sets up the map, the drone, 
 
 ---
 
-## License
-
-This project is licensed under the MIT License. See the LICENSE file for details.
-
----
-
-## Contributing
-
-Contributions are welcome! Please open an issue or submit a pull request with any improvements or bug fixes.
-
----
-
-## Acknowledgements
-
-Special thanks to all the contributors and the open-source community for their invaluable support and resources.
-
----
-
-This README provides an overview of the Drone Simulator project, detailing its features, structure, and usage. For more detailed information, refer to the source code and comments within each module.
-
----
