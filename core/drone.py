@@ -449,6 +449,8 @@ class Drone:
         - Determines the direction towards the target_position considering obstacles.
         - Uses a basic heuristic to avoid obstacles, preferring directions with less obstruction.
         """
+        if self.battery.is_dead():
+            return
 
         if self.battery.is_going_to_empty():
             if not self.returning_home:
@@ -502,6 +504,8 @@ class Drone:
 
     def follow_path_to_home(self):
         if not self.home_path:
+            self.battery.charge()
+            self.returning_home = False
             return
 
         next_node = self.home_path.pop(0)
