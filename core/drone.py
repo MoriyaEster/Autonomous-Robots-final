@@ -159,47 +159,47 @@ class Drone:
                 return False
         return True
 
-    def add_nodes_in_open_space(self):
-        """
-        Add nodes to the list that are in open space (not colliding with obstacles).
-
-        Args:
-        - nodes (list): List of nodes, where each node is represented as a tuple (x, y).
-        - environment (list): List of obstacle coordinates, where each obstacle is represented as a tuple (x, y, radius).
-        - min_distance (float): Minimum distance that each node must maintain from obstacles.
-
-        Returns:
-        - list: Filtered list of nodes that are in open space and adhere to the minimum distance constraint.
-
-        Notes:
-        - Assumes nodes are given as (x, y) tuples.
-        - Assumes obstacles are given as (x, y, radius) tuples.
-        - Checks if each node is at least min_distance away from all obstacles in the environment.
-        """
-        directions: dict[int, tuple[int, int]] = {
-            0: (0, -1),  # Front (up)
-            90: (1, 0),  # Right
-            180: (0, 1),  # Backward (down)
-            270: (-1, 0)  # Left
-        }
-
-        for direction, (dx, dy) in directions.items():
-            x, y = self.position
-            for i in range(100):  # 1 meter = 100 cm
-                x += dx
-                y += dy
-
-                if self.map.is_point_in_valid_spot((int(x), int(y)), self.radius):
-                    break
-
-            node_id = (int(x), int(y))
-            if node_id not in self.graph and self.is_node_far_enough(node_id):
-                self.graph.add_node(node_id, position=[x, y], visits=0)
-                if self.current_node is not None:
-                    self.graph.add_edge(self.current_node, node_id)
-                self.previous_node = self.current_node
-                self.current_node = node_id
-                self.node_visit_count[node_id] = 0  # Initialize visit count
+    # def add_nodes_in_open_space(self):
+    #     """
+    #     Add nodes to the list that are in open space (not colliding with obstacles).
+    #
+    #     Args:
+    #     - nodes (list): List of nodes, where each node is represented as a tuple (x, y).
+    #     - environment (list): List of obstacle coordinates, where each obstacle is represented as a tuple (x, y, radius).
+    #     - min_distance (float): Minimum distance that each node must maintain from obstacles.
+    #
+    #     Returns:
+    #     - list: Filtered list of nodes that are in open space and adhere to the minimum distance constraint.
+    #
+    #     Notes:
+    #     - Assumes nodes are given as (x, y) tuples.
+    #     - Assumes obstacles are given as (x, y, radius) tuples.
+    #     - Checks if each node is at least min_distance away from all obstacles in the environment.
+    #     """
+    #     directions: dict[int, tuple[int, int]] = {
+    #         0: (0, -1),  # Front (up)
+    #         90: (1, 0),  # Right
+    #         180: (0, 1),  # Backward (down)
+    #         270: (-1, 0)  # Left
+    #     }
+    #
+    #     for direction, (dx, dy) in directions.items():
+    #         x, y = self.position
+    #         for i in range(100):  # 1 meter = 100 cm
+    #             x += dx
+    #             y += dy
+    #
+    #             if self.map.is_point_in_valid_spot((int(x), int(y)), self.radius):
+    #                 break
+    #
+    #         node_id = (int(x), int(y))
+    #         if node_id not in self.graph and self.is_node_far_enough(node_id):
+    #             self.graph.add_node(node_id, position=[x, y], visits=0)
+    #             if self.current_node is not None:
+    #                 self.graph.add_edge(self.current_node, node_id)
+    #             self.previous_node = self.current_node
+    #             self.current_node = node_id
+    #             self.node_visit_count[node_id] = 0  # Initialize visit count
 
     def generate_nodes_based_on_sensor_data(self, sensor_data: dict[str, Union[int, float]]):
         """
@@ -316,37 +316,37 @@ class Drone:
         for non_neighbor in non_neighbors:
             self.graph.add_edge(node, non_neighbor)
 
-    def find_closest_unvisited_node_by_euclidean_distance(self) -> Union[tuple[int, int], None]:
-        """
-        Find the closest unvisited node to the current node based on Euclidean distance.
-
-        Args:
-        - current_node (tuple): Coordinates of the current node.
-        - nodes (list of tuples): List of nodes where each node is represented as a tuple of coordinates.
-        - visited_nodes (set): Set of visited nodes represented as tuples of coordinates.
-
-        Returns:
-        - tuple or None: Coordinates of the closest unvisited node to the current node,
-          or None if all nodes are visited.
-
-        Notes:
-        - Assumes nodes are represented as tuples of coordinates (x, y).
-        - Uses Euclidean distance to determine proximity between nodes.
-        - Returns None if all nodes in the `nodes` list are visited.
-        """
-        min_distance = float('inf')
-        closest_node = None
-
-        # Iterate over all nodes and their attributes
-        for node_id, node_data in self.graph.nodes(data=True):
-            if not node_data['visited']:
-                node_position = node_id  # Assuming node_id is a tuple (x, y)
-                distance = self.map.get_distance_between_points(self.position, node_position)
-                if distance < min_distance:
-                    min_distance = distance
-                    closest_node = node_id
-
-        return closest_node
+    # def find_closest_unvisited_node_by_euclidean_distance(self) -> Union[tuple[int, int], None]:
+    #     """
+    #     Find the closest unvisited node to the current node based on Euclidean distance.
+    #
+    #     Args:
+    #     - current_node (tuple): Coordinates of the current node.
+    #     - nodes (list of tuples): List of nodes where each node is represented as a tuple of coordinates.
+    #     - visited_nodes (set): Set of visited nodes represented as tuples of coordinates.
+    #
+    #     Returns:
+    #     - tuple or None: Coordinates of the closest unvisited node to the current node,
+    #       or None if all nodes are visited.
+    #
+    #     Notes:
+    #     - Assumes nodes are represented as tuples of coordinates (x, y).
+    #     - Uses Euclidean distance to determine proximity between nodes.
+    #     - Returns None if all nodes in the `nodes` list are visited.
+    #     """
+    #     min_distance = float('inf')
+    #     closest_node = None
+    #
+    #     # Iterate over all nodes and their attributes
+    #     for node_id, node_data in self.graph.nodes(data=True):
+    #         if not node_data['visited']:
+    #             node_position = node_id  # Assuming node_id is a tuple (x, y)
+    #             distance = self.map.get_distance_between_points(self.position, node_position)
+    #             if distance < min_distance:
+    #                 min_distance = distance
+    #                 closest_node = node_id
+    #
+    #     return closest_node
 
     def find_closest_unvisited_node_by_bfs(self) -> Union[Tuple[int, int], None]:
         """
