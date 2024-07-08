@@ -435,12 +435,17 @@ class Drone:
         if self.battery.is_dead():
             return
 
-        if self.battery.is_going_to_empty():
+
+        elif self.battery.is_going_to_empty():
             if not self.returning_home:
                 self.returning_home = True
                 self.calculate_path_to_home()
             self.follow_path(self.home_path, True)
             return
+
+
+
+
 
         self.perform_sensing_and_navigation(sensor_data)
 
@@ -474,7 +479,9 @@ class Drone:
         """
         if not path:
             if is_home_path:
-                self.battery.charge()
+                while self.battery.len_path:
+                    self.battery.charge()
+                self.battery.charging = False
                 self.returning_home = False
             return
 
@@ -502,21 +509,25 @@ class Drone:
             self.position = [next_node[0], next_node[1]]
             self.graph.nodes[next_node]['visited'] = True
 
+        self.battery.len_path += 1
+
     def calculate_path_to_home(self):
         """
         Calculate the path to the home node.
         """
         if not self.graph.has_node(self.home_node):
-            return
+            return 0
 
         if not self.graph.has_node((int(self.position[0]), int(self.position[1]))):
-            return
+            return 0
 
         try:
             self.home_path = nx.shortest_path(self.graph, source=(int(self.position[0]), int(self.position[1])),
                                               target=self.home_node)
+            return len(self.home_path)
         except Exception as e:
             self.returning_home = False
+            return 0
 
     # def change_direction(self, left_distance, right_distance):
     #     """
