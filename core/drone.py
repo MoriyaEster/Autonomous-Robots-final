@@ -431,23 +431,6 @@ class Drone:
     def decide_next_move(self, sensor_data: dict[str, Union[int, float]]):
         """
         Decide the next move from the current position towards the target position, avoiding obstacles if possible.
-
-        Args:
-        - current_position (tuple): Current position coordinates (x, y).
-        - target_position (tuple): Target position coordinates (x, y).
-        - obstacles (list): List of obstacle positions, where each obstacle is represented as a tuple (x, y).
-
-        Returns:
-        - str: Direction of the next move ('up', 'down', 'left', 'right').
-
-        Raises:
-        - ValueError: If current_position or target_position is not provided as tuples of length 2.
-        - ValueError: If current_position is the same as target_position.
-
-        Notes:
-        - Assumes positions are represented as tuples of coordinates (x, y).
-        - Determines the direction towards the target_position considering obstacles.
-        - Uses a basic heuristic to avoid obstacles, preferring directions with less obstruction.
         """
         if self.battery.is_dead():
             return
@@ -456,11 +439,24 @@ class Drone:
             if not self.returning_home:
                 self.returning_home = True
                 self.calculate_path_to_home()
-            self.follow_path_to_home()
+            self.follow_path(self.home_path, True)
             return
 
+        self.perform_sensing_and_navigation(sensor_data)
+
+    def perform_sensing_and_navigation(self, sensor_data: dict[str, Union[int, float]]):
+        """
+        Perform sensing and navigation based on sensor data.
+        """
         self.generate_nodes_based_on_sensor_data(sensor_data)
         next_node = self.find_closest_unvisited_node_by_bfs()
+        path = self.calculate_path(next_node)
+        self.follow_path(path)
+
+    def calculate_path(self, next_node: Union[tuple[int, int], None]) -> Union[List[tuple[int, int]], None]:
+        """
+        Calculate the path to the next node.
+        """
         path = None
         if self.current_path:
             path = self.current_path
@@ -470,26 +466,46 @@ class Drone:
                                         target=next_node)[1:]
             except Exception as e:
                 pass
-        if path:
-            next_node = path.pop(0)
-        if next_node:
-            if self.map.get_distance_between_points((int(self.position[0]), int(self.position[1])),
-                                                    next_node) > self.speed_sensor.get_speed():
-                new_position = self.move_one_step_towards(self.position, [next_node[0], next_node[1]])
-                if self.map.is_point_in_valid_spot(new_position, self.radius):
-                    self.position = [new_position[0], new_position[1]]
-                else:
-                    self.attempt_alternate_moves()
+        return path
 
-            if next_node[0] == int(self.position[0]) and next_node[1] == int(self.position[1]):
-                self.graph.nodes[next_node]['visited'] = True
-            else:
-                self.position = [next_node[0], next_node[1]]
-                self.graph.nodes[next_node]['visited'] = True
+    def follow_path(self, path: Union[List[tuple[int, int]], None], is_home_path: bool = False):
+        """
+        Follow the given path.
+        """
+        if not path:
+            if is_home_path:
+                self.battery.charge()
+                self.returning_home = False
+            return
+
+        next_node = path.pop(0)
+        if next_node:
+            self.move_to_next_node(next_node)
         if path:
             self.current_path = path
 
+    def move_to_next_node(self, next_node: tuple[int, int]):
+        """
+        Move to the next node along the path.
+        """
+        if self.map.get_distance_between_points((int(self.position[0]), int(self.position[1])),
+                                                next_node) > self.speed_sensor.get_speed():
+            new_position = self.move_one_step_towards(self.position, [next_node[0], next_node[1]])
+            if self.map.is_point_in_valid_spot(new_position, self.radius):
+                self.position = [new_position[0], new_position[1]]
+            else:
+                self.attempt_alternate_moves()
+
+        if next_node[0] == int(self.position[0]) and next_node[1] == int(self.position[1]):
+            self.graph.nodes[next_node]['visited'] = True
+        else:
+            self.position = [next_node[0], next_node[1]]
+            self.graph.nodes[next_node]['visited'] = True
+
     def calculate_path_to_home(self):
+        """
+        Calculate the path to the home node.
+        """
         if not self.graph.has_node(self.home_node):
             return
 
@@ -502,87 +518,32 @@ class Drone:
         except Exception as e:
             self.returning_home = False
 
-    def follow_path_to_home(self):
-        if not self.home_path:
-            self.battery.charge()
-            self.returning_home = False
-            return
-
-        next_node = self.home_path.pop(0)
-        if next_node:
-            if self.map.get_distance_between_points((int(self.position[0]), int(self.position[1])),
-                                                    next_node) > self.speed_sensor.get_speed():
-                new_position = self.move_one_step_towards(self.position, [next_node[0], next_node[1]])
-                if self.map.is_point_in_valid_spot(new_position, self.radius):
-                    self.position = [new_position[0], new_position[1]]
-                else:
-                    self.attempt_alternate_moves()
-
-            if next_node[0] == int(self.position[0]) and next_node[1] == int(self.position[1]):
-                self.graph.nodes[next_node]['visited'] = True
-            else:
-                self.position = [next_node[0], next_node[1]]
-                self.graph.nodes[next_node]['visited'] = True
-        else:
-            print("DONE")
-        if self.home_path:
-            self.current_path = self.home_path
-
-    def return_to_home(self):
-        if not self.graph.has_node(self.home_node):
-            return
-
-        if not self.graph.has_node((int(self.position[0]), int(self.position[1]))):
-            return
-
-        try:
-            path_to_home = nx.shortest_path(self.graph, source=(int(self.position[0]), int(self.position[1])),
-                                            target=self.home_node)
-            print("Path to home found:", path_to_home)
-        except Exception as e:
-            return
-
-        for node in path_to_home:
-            while [int(self.position[0]), int(self.position[1])] != list(node):
-                new_position = self.move_one_step_towards(self.position, [node[0], node[1]])
-                if self.map.is_point_in_valid_spot(new_position, self.radius):
-                    self.position = [new_position[0], new_position[1]]
-                else:
-                    print("I'm stuck here while returning home")
-                    if not self.attempt_alternate_moves():
-                        print("Cannot find alternate move")
-                        return
-
-            if [node[0], node[1]] == list(self.home_node):
-                print("Drone has returned home")
-                break
-
-    def change_direction(self, left_distance, right_distance):
-        """
-        Determine a new direction when encountering an obstacle.
-
-        Args:
-        - current_direction (str): Current direction ('up', 'down', 'left', 'right').
-        - obstacle_direction (str): Direction towards the obstacle ('up', 'down', 'left', 'right').
-
-        Returns:
-        - str: New direction to attempt after encountering the obstacle.
-
-        Raises:
-        - ValueError: If current_direction or obstacle_direction is not one of 'up', 'down', 'left', 'right'.
-
-        Notes:
-        - Assumes valid input directions ('up', 'down', 'left', 'right').
-        - Determines a new direction opposite to the obstacle_direction to attempt to avoid the obstacle.
-        """
-        if left_distance > right_distance:
-            if not self.move("left"):  # Try to move left
-                if not self.move("right"):  # If left is blocked, try moving right
-                    self.move("backward")  # If both are blocked, try moving backward
-        else:
-            if not self.move("right"):  # Try to move right
-                if not self.move("left"):  # If right is blocked, try moving left
-                    self.move("backward")  # If both are blocked, try moving backward
+    # def change_direction(self, left_distance, right_distance):
+    #     """
+    #     Determine a new direction when encountering an obstacle.
+    #
+    #     Args:
+    #     - current_direction (str): Current direction ('up', 'down', 'left', 'right').
+    #     - obstacle_direction (str): Direction towards the obstacle ('up', 'down', 'left', 'right').
+    #
+    #     Returns:
+    #     - str: New direction to attempt after encountering the obstacle.
+    #
+    #     Raises:
+    #     - ValueError: If current_direction or obstacle_direction is not one of 'up', 'down', 'left', 'right'.
+    #
+    #     Notes:
+    #     - Assumes valid input directions ('up', 'down', 'left', 'right').
+    #     - Determines a new direction opposite to the obstacle_direction to attempt to avoid the obstacle.
+    #     """
+    #     if left_distance > right_distance:
+    #         if not self.move("left"):  # Try to move left
+    #             if not self.move("right"):  # If left is blocked, try moving right
+    #                 self.move("backward")  # If both are blocked, try moving backward
+    #     else:
+    #         if not self.move("right"):  # Try to move right
+    #             if not self.move("left"):  # If right is blocked, try moving left
+    #                 self.move("backward")  # If both are blocked, try moving backward
 
     def attempt_alternate_moves(self):
         """
