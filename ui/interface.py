@@ -3,7 +3,7 @@ import pygame
 from pygame import Surface
 from core.drone import Drone
 from core.map import Map
-from utils.helper import draw_battery_dead_message, draw_battery_bar
+from utils.helper import draw_battery_dead_message, draw_battery_bar, draw_battery_low_message
 
 
 class DroneSimulatorUI:
@@ -21,6 +21,8 @@ class DroneSimulatorUI:
 
         if self.drone.battery.is_dead():
             draw_battery_dead_message(self.screen)
+        elif self.drone.battery.is_going_to_empty():
+            draw_battery_low_message(self.screen)
 
         pygame.display.flip()
 
@@ -41,5 +43,7 @@ class DroneSimulatorUI:
             self.update()
             if self.drone.battery.is_dead():
                 print("Battery died")
+            elif self.drone.battery.is_going_to_empty():
+                print("Battery low")
             # Uncomment for slower rendering
             # sleep(0.015)

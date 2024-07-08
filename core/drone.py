@@ -450,7 +450,7 @@ class Drone:
         - Uses a basic heuristic to avoid obstacles, preferring directions with less obstruction.
         """
 
-        if self.battery.is_dead():
+        if self.battery.is_going_to_empty():
             if not self.returning_home:
                 self.returning_home = True
                 self.calculate_path_to_home()

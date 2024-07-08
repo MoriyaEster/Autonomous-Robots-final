@@ -37,3 +37,8 @@ def draw_battery_dead_message(screen):
     font = pygame.font.Font(None, 30)
     text = font.render('Battery Died', True, (255, 0, 0))
     screen.blit(text, (100, 500))
+
+def draw_battery_low_message(screen):
+    font = pygame.font.Font(None, 30)
+    text = font.render('Battery low', True, (255, 0, 0))
+    screen.blit(text, (100, 500))
