@@ -2,12 +2,21 @@ import time
 
 
 class Battery:
-    def __init__(self, duration: float):
-        self.duration: float = duration
-        self.start_time: float = time.time()
+    def __init__(self, duration: int):
+        self.duration: int = duration
+        self.power: int = duration
+        self.is_charging: bool = False
 
     def is_dead(self) -> bool:
-        return (time.time() - self.start_time) >= self.duration
+        return self.power <= 0
 
     def get_remaining_time(self) -> float:
-        return max(0, self.duration - (time.time() - self.start_time))
+        return max(0, self.power)
+
+    def battery_low(self):
+        return self.power <= self.duration * 0.2
+
+    def charging(self):
+        self.is_charging = True
+        self.power += 1
+        time.sleep(0.001)

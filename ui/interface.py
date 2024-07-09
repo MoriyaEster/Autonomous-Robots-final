@@ -39,6 +39,7 @@ class DroneSimulatorUI:
             sensor_data = self.drone.sense(self.map)
             self.drone.decide_next_move(sensor_data)
             self.update()
+            print(self.drone.battery.power)
             if self.drone.battery.is_dead():
                 print("Battery died")
             # Uncomment for slower rendering

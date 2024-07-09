@@ -426,6 +426,7 @@ class Drone:
         new_x = current_x + (speed if dx > 0 else -speed)
         new_y = current_y + (speed if dy > 0 else -speed)
 
+
         return new_x, new_y
 
     def decide_next_move(self, sensor_data: dict[str, Union[int, float]]):
@@ -452,13 +453,15 @@ class Drone:
 
         if self.battery.is_dead():
             return
-        
-        if self.battery.duration < 40:
+
+        if self.battery.battery_low():
             if not self.returning_home:
                 self.returning_home = True
                 self.current_path = nx.shortest_path(self.graph, source=(int(self.position[0]), int(self.position[1])),target=self.home_node)[1:]
             if not self.current_path:
-                pass
+                while self.battery.power < self.battery.duration:
+                    self.battery.charging()
+                self.battery.is_charging = False
 
         self.generate_nodes_based_on_sensor_data(sensor_data)
         next_node = self.find_closest_unvisited_node_by_bfs()
@@ -488,6 +491,7 @@ class Drone:
         if path:
             self.current_path = path
 
+        self.battery.power -= 1
     def calculate_path_to_home(self):
         if not self.graph.has_node(self.home_node):
             return
