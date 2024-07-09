@@ -426,6 +426,8 @@ class Drone:
         new_x = current_x + (speed if dx > 0 else -speed)
         new_y = current_y + (speed if dy > 0 else -speed)
 
+        self.battery.len_path += 1
+
         return new_x, new_y
 
     def decide_next_move(self, sensor_data: dict[str, Union[int, float]]):
@@ -435,17 +437,17 @@ class Drone:
         if self.battery.is_dead():
             return
 
-
-        elif self.battery.is_going_to_empty():
+        if self.battery.is_going_to_empty():
             if not self.returning_home:
                 self.returning_home = True
                 self.calculate_path_to_home()
             self.follow_path(self.home_path, True)
             return
 
-
-
-
+        if self.battery.len_path + self.calculate_path_to_home() + 5 >= self.battery.duration:
+            self.returning_home = True
+            self.follow_path(self.home_path, True)
+            return
 
         self.perform_sensing_and_navigation(sensor_data)
 
@@ -477,6 +479,7 @@ class Drone:
         """
         Follow the given path.
         """
+        print(len(path))
         if not path:
             if is_home_path:
                 while self.battery.len_path:
@@ -486,6 +489,7 @@ class Drone:
             return
 
         next_node = path.pop(0)
+        print(next_node)
         if next_node:
             self.move_to_next_node(next_node)
         if path:
@@ -509,11 +513,14 @@ class Drone:
             self.position = [next_node[0], next_node[1]]
             self.graph.nodes[next_node]['visited'] = True
 
-        self.battery.len_path += 1
 
-    def calculate_path_to_home(self):
+
+    def calculate_path_to_home(self) -> int:
         """
-        Calculate the path to the home node.
+        Calculate the path to the home node and return the number of nodes in the path.
+
+        Returns:
+        - int: The number of nodes in the path to home. Returns 0 if no valid path is found.
         """
         if not self.graph.has_node(self.home_node):
             return 0
