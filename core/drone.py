@@ -12,6 +12,7 @@ from sensors.speed import Speed
 from core.map import Map
 from sensors.battery import Battery
 
+
 class Drone:
     def __init__(self, map: Map, drone_radius: int, battery_duration_in_seconds: int, speed_in_pixels_per_move: int):
         self.starting_position: List[float] = [130.0, 130.0]
@@ -50,11 +51,11 @@ class Drone:
         if map.is_point_in_valid_spot((int(starting_position[0]), int(starting_position[1])), radius):
             return starting_position
         invalid_point = True
-        
-        new_point = [0.0,0.0]
+
+        new_point = [0.0, 0.0]
 
         while invalid_point:
-            center_x, center_y = float(random.randint(20,790)), float(random.randint(20,585))
+            center_x, center_y = float(random.randint(20, 790)), float(random.randint(20, 585))
             new_point = [center_x, center_y]
             if map.is_point_in_valid_spot((int(new_point[0]), int(new_point[1])), radius):
                 invalid_point = False
@@ -129,7 +130,7 @@ class Drone:
             'lidar_left': self.lidar_left.measure_distance(270, environment, self.position),
             'lidar_right': self.lidar_right.measure_distance(90, environment, self.position),
         }
-        
+
         environment.mark_sensor_area(self.position, data['lidar_front'], 0)
         environment.mark_sensor_area(self.position, data['lidar_backward'], 180)
         environment.mark_sensor_area(self.position, data['lidar_left'], 270)
@@ -220,7 +221,8 @@ class Drone:
         """
         # Add current position
         current_position_node = (int(self.position.copy()[0]), int(self.position.copy()[1]))
-        if current_position_node not in self.graph and self.map.is_point_in_valid_spot(current_position_node, self.radius):
+        if current_position_node not in self.graph and self.map.is_point_in_valid_spot(current_position_node,
+                                                                                       self.radius):
             self.graph.add_node(current_position_node, position=current_position_node, visited=True)
 
         front_distance = sensor_data['lidar_front']
@@ -433,37 +435,36 @@ class Drone:
     def decide_next_move(self, sensor_data: dict[str, Union[int, float]]):
         """
         Decide the next move from the current position towards the target position, avoiding obstacles if possible.
+
+        Args:
+        - current_position (tuple): Current position coordinates (x, y).
+        - target_position (tuple): Target position coordinates (x, y).
+        - obstacles (list): List of obstacle positions, where each obstacle is represented as a tuple (x, y).
+
+        Returns:
+        - str: Direction of the next move ('up', 'down', 'left', 'right').
+
+        Raises:
+        - ValueError: If current_position or target_position is not provided as tuples of length 2.
+        - ValueError: If current_position is the same as target_position.
+
+        Notes:
+        - Assumes positions are represented as tuples of coordinates (x, y).
+        - Determines the direction towards the target_position considering obstacles.
+        - Uses a basic heuristic to avoid obstacles, preferring directions with less obstruction.
         """
         if self.battery.is_dead():
             return
 
-        if self.battery.is_going_to_empty():
+        if self.battery.is_going_to_empty() or self.battery.len_path + self.calculate_path_to_home() + 5 >= self.battery.duration:
             if not self.returning_home:
                 self.returning_home = True
                 self.calculate_path_to_home()
-            self.follow_path(self.home_path, True)
+            self.follow_path_to_home()
             return
 
-        if self.battery.len_path + self.calculate_path_to_home() + 5 >= self.battery.duration:
-            self.returning_home = True
-            self.follow_path(self.home_path, True)
-            return
-
-        self.perform_sensing_and_navigation(sensor_data)
-
-    def perform_sensing_and_navigation(self, sensor_data: dict[str, Union[int, float]]):
-        """
-        Perform sensing and navigation based on sensor data.
-        """
         self.generate_nodes_based_on_sensor_data(sensor_data)
         next_node = self.find_closest_unvisited_node_by_bfs()
-        path = self.calculate_path(next_node)
-        self.follow_path(path)
-
-    def calculate_path(self, next_node: Union[tuple[int, int], None]) -> Union[List[tuple[int, int]], None]:
-        """
-        Calculate the path to the next node.
-        """
         path = None
         if self.current_path:
             path = self.current_path
@@ -473,54 +474,29 @@ class Drone:
                                         target=next_node)[1:]
             except Exception as e:
                 pass
-        return path
-
-    def follow_path(self, path: Union[List[tuple[int, int]], None], is_home_path: bool = False):
-        """
-        Follow the given path.
-        """
-        print(len(path))
-        if not path:
-            if is_home_path:
-                while self.battery.len_path:
-                    self.battery.charge()
-                self.battery.charging = False
-                self.returning_home = False
-            return
-
-        next_node = path.pop(0)
-        print(next_node)
+        if path:
+            next_node = path.pop(0)
         if next_node:
-            self.move_to_next_node(next_node)
+            if self.map.get_distance_between_points((int(self.position[0]), int(self.position[1])),
+                                                    next_node) > self.speed_sensor.get_speed():
+                new_position = self.move_one_step_towards(self.position, [next_node[0], next_node[1]])
+                if self.map.is_point_in_valid_spot(new_position, self.radius):
+                    self.position = [new_position[0], new_position[1]]
+                else:
+                    self.attempt_alternate_moves()
+
+            if next_node[0] == int(self.position[0]) and next_node[1] == int(self.position[1]):
+                self.graph.nodes[next_node]['visited'] = True
+            else:
+                self.position = [next_node[0], next_node[1]]
+                self.graph.nodes[next_node]['visited'] = True
         if path:
             self.current_path = path
 
-    def move_to_next_node(self, next_node: tuple[int, int]):
-        """
-        Move to the next node along the path.
-        """
-        if self.map.get_distance_between_points((int(self.position[0]), int(self.position[1])),
-                                                next_node) > self.speed_sensor.get_speed():
-            new_position = self.move_one_step_towards(self.position, [next_node[0], next_node[1]])
-            if self.map.is_point_in_valid_spot(new_position, self.radius):
-                self.position = [new_position[0], new_position[1]]
-            else:
-                self.attempt_alternate_moves()
-
-        if next_node[0] == int(self.position[0]) and next_node[1] == int(self.position[1]):
-            self.graph.nodes[next_node]['visited'] = True
-        else:
-            self.position = [next_node[0], next_node[1]]
-            self.graph.nodes[next_node]['visited'] = True
-
-
-
     def calculate_path_to_home(self) -> int:
         """
-        Calculate the path to the home node and return the number of nodes in the path.
-
-        Returns:
-        - int: The number of nodes in the path to home. Returns 0 if no valid path is found.
+        Calculate the path to the home node.
+        Returns the number of nodes in the path.
         """
         if not self.graph.has_node(self.home_node):
             return 0
@@ -531,10 +507,41 @@ class Drone:
         try:
             self.home_path = nx.shortest_path(self.graph, source=(int(self.position[0]), int(self.position[1])),
                                               target=self.home_node)
+            print(self.home_path)
             return len(self.home_path)
         except Exception as e:
             self.returning_home = False
             return 0
+
+
+
+    def follow_path_to_home(self):
+
+        if not self.home_path:
+            while self.battery.len_path:
+                self.battery.charge()
+            self.returning_home = False
+            return
+
+        next_node = self.home_path.pop(0)
+        if next_node:
+            if self.map.get_distance_between_points((int(self.position[0]), int(self.position[1])),
+                                                    next_node) > self.speed_sensor.get_speed():
+                new_position = self.move_one_step_towards(self.position, [next_node[0], next_node[1]])
+                if self.map.is_point_in_valid_spot(new_position, self.radius):
+                    self.position = [new_position[0], new_position[1]]
+                else:
+                    self.attempt_alternate_moves()
+
+            if next_node[0] == int(self.position[0]) and next_node[1] == int(self.position[1]):
+                self.graph.nodes[next_node]['visited'] = True
+            else:
+                self.position = [next_node[0], next_node[1]]
+                self.graph.nodes[next_node]['visited'] = True
+        else:
+            print("DONE")
+        if self.home_path:
+            self.current_path = self.home_path
 
     # def change_direction(self, left_distance, right_distance):
     #     """
