@@ -461,7 +461,6 @@ class Drone:
             if not self.current_path:
                 while self.battery.power < self.battery.duration:
                     self.battery.charging()
-                self.battery.is_charging = False
                 self.returning_home = False
 
         self.generate_nodes_based_on_sensor_data(sensor_data)

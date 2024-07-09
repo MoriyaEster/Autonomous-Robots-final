@@ -5,7 +5,6 @@ class Battery:
     def __init__(self, duration: int):
         self.duration: int = duration
         self.power: int = duration
-        self.is_charging: bool = False
 
     def is_dead(self) -> bool:
         return self.power <= 0
@@ -17,6 +16,5 @@ class Battery:
         return self.power <= self.duration * 0.2
 
     def charging(self):
-        self.is_charging = True
         self.power += 1
         time.sleep(0.001)
