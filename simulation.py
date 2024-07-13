@@ -29,5 +29,5 @@ class Simulation:
         pygame.quit()
 
 if __name__ == "__main__":
-    sim = Simulation('tracks/p13.png', 10, 250, 5)  # Update with the correct map path
+    sim = Simulation('tracks/p14.png', 10, 1000, 5)  # Update with the correct map path
     sim.run()

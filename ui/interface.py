@@ -47,4 +47,4 @@ class DroneSimulatorUI:
             if self.drone.battery.battery_low():
                 print("Battery low")
             # Uncomment for slower rendering
-            sleep(0.05)
+            # sleep(0.05)
