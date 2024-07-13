@@ -12,6 +12,7 @@ from sensors.speed import Speed
 from core.map import Map
 from sensors.battery import Battery
 
+
 class Drone:
     def __init__(self, map: Map, drone_radius: int, battery_duration_in_seconds: int, speed_in_pixels_per_move: int):
         self.starting_position: List[float] = [130.0, 130.0]
@@ -50,11 +51,11 @@ class Drone:
         if map.is_point_in_valid_spot((int(starting_position[0]), int(starting_position[1])), radius):
             return starting_position
         invalid_point = True
-        
-        new_point = [0.0,0.0]
+
+        new_point = [0.0, 0.0]
 
         while invalid_point:
-            center_x, center_y = float(random.randint(20,790)), float(random.randint(20,585))
+            center_x, center_y = float(random.randint(20, 790)), float(random.randint(20, 585))
             new_point = [center_x, center_y]
             if map.is_point_in_valid_spot((int(new_point[0]), int(new_point[1])), radius):
                 invalid_point = False
@@ -129,7 +130,7 @@ class Drone:
             'lidar_left': self.lidar_left.measure_distance(270, environment, self.position),
             'lidar_right': self.lidar_right.measure_distance(90, environment, self.position),
         }
-        
+
         environment.mark_sensor_area(self.position, data['lidar_front'], 0)
         environment.mark_sensor_area(self.position, data['lidar_backward'], 180)
         environment.mark_sensor_area(self.position, data['lidar_left'], 270)
@@ -159,47 +160,47 @@ class Drone:
                 return False
         return True
 
-    def add_nodes_in_open_space(self):
-        """
-        Add nodes to the list that are in open space (not colliding with obstacles).
-
-        Args:
-        - nodes (list): List of nodes, where each node is represented as a tuple (x, y).
-        - environment (list): List of obstacle coordinates, where each obstacle is represented as a tuple (x, y, radius).
-        - min_distance (float): Minimum distance that each node must maintain from obstacles.
-
-        Returns:
-        - list: Filtered list of nodes that are in open space and adhere to the minimum distance constraint.
-
-        Notes:
-        - Assumes nodes are given as (x, y) tuples.
-        - Assumes obstacles are given as (x, y, radius) tuples.
-        - Checks if each node is at least min_distance away from all obstacles in the environment.
-        """
-        directions: dict[int, tuple[int, int]] = {
-            0: (0, -1),  # Front (up)
-            90: (1, 0),  # Right
-            180: (0, 1),  # Backward (down)
-            270: (-1, 0)  # Left
-        }
-
-        for direction, (dx, dy) in directions.items():
-            x, y = self.position
-            for i in range(100):  # 1 meter = 100 cm
-                x += dx
-                y += dy
-
-                if self.map.is_point_in_valid_spot((int(x), int(y)), self.radius):
-                    break
-
-            node_id = (int(x), int(y))
-            if node_id not in self.graph and self.is_node_far_enough(node_id):
-                self.graph.add_node(node_id, position=[x, y], visits=0)
-                if self.current_node is not None:
-                    self.graph.add_edge(self.current_node, node_id)
-                self.previous_node = self.current_node
-                self.current_node = node_id
-                self.node_visit_count[node_id] = 0  # Initialize visit count
+    # def add_nodes_in_open_space(self):
+    #     """
+    #     Add nodes to the list that are in open space (not colliding with obstacles).
+    #
+    #     Args:
+    #     - nodes (list): List of nodes, where each node is represented as a tuple (x, y).
+    #     - environment (list): List of obstacle coordinates, where each obstacle is represented as a tuple (x, y, radius).
+    #     - min_distance (float): Minimum distance that each node must maintain from obstacles.
+    #
+    #     Returns:
+    #     - list: Filtered list of nodes that are in open space and adhere to the minimum distance constraint.
+    #
+    #     Notes:
+    #     - Assumes nodes are given as (x, y) tuples.
+    #     - Assumes obstacles are given as (x, y, radius) tuples.
+    #     - Checks if each node is at least min_distance away from all obstacles in the environment.
+    #     """
+    #     directions: dict[int, tuple[int, int]] = {
+    #         0: (0, -1),  # Front (up)
+    #         90: (1, 0),  # Right
+    #         180: (0, 1),  # Backward (down)
+    #         270: (-1, 0)  # Left
+    #     }
+    #
+    #     for direction, (dx, dy) in directions.items():
+    #         x, y = self.position
+    #         for i in range(100):  # 1 meter = 100 cm
+    #             x += dx
+    #             y += dy
+    #
+    #             if self.map.is_point_in_valid_spot((int(x), int(y)), self.radius):
+    #                 break
+    #
+    #         node_id = (int(x), int(y))
+    #         if node_id not in self.graph and self.is_node_far_enough(node_id):
+    #             self.graph.add_node(node_id, position=[x, y], visits=0)
+    #             if self.current_node is not None:
+    #                 self.graph.add_edge(self.current_node, node_id)
+    #             self.previous_node = self.current_node
+    #             self.current_node = node_id
+    #             self.node_visit_count[node_id] = 0  # Initialize visit count
 
     def generate_nodes_based_on_sensor_data(self, sensor_data: dict[str, Union[int, float]]):
         """
@@ -220,7 +221,8 @@ class Drone:
         """
         # Add current position
         current_position_node = (int(self.position.copy()[0]), int(self.position.copy()[1]))
-        if current_position_node not in self.graph and self.map.is_point_in_valid_spot(current_position_node, self.radius):
+        if current_position_node not in self.graph and self.map.is_point_in_valid_spot(current_position_node,
+                                                                                       self.radius):
             self.graph.add_node(current_position_node, position=current_position_node, visited=True)
 
         front_distance = sensor_data['lidar_front']
@@ -316,37 +318,37 @@ class Drone:
         for non_neighbor in non_neighbors:
             self.graph.add_edge(node, non_neighbor)
 
-    def find_closest_unvisited_node_by_euclidean_distance(self) -> Union[tuple[int, int], None]:
-        """
-        Find the closest unvisited node to the current node based on Euclidean distance.
-
-        Args:
-        - current_node (tuple): Coordinates of the current node.
-        - nodes (list of tuples): List of nodes where each node is represented as a tuple of coordinates.
-        - visited_nodes (set): Set of visited nodes represented as tuples of coordinates.
-
-        Returns:
-        - tuple or None: Coordinates of the closest unvisited node to the current node,
-          or None if all nodes are visited.
-
-        Notes:
-        - Assumes nodes are represented as tuples of coordinates (x, y).
-        - Uses Euclidean distance to determine proximity between nodes.
-        - Returns None if all nodes in the `nodes` list are visited.
-        """
-        min_distance = float('inf')
-        closest_node = None
-
-        # Iterate over all nodes and their attributes
-        for node_id, node_data in self.graph.nodes(data=True):
-            if not node_data['visited']:
-                node_position = node_id  # Assuming node_id is a tuple (x, y)
-                distance = self.map.get_distance_between_points(self.position, node_position)
-                if distance < min_distance:
-                    min_distance = distance
-                    closest_node = node_id
-
-        return closest_node
+    # def find_closest_unvisited_node_by_euclidean_distance(self) -> Union[tuple[int, int], None]:
+    #     """
+    #     Find the closest unvisited node to the current node based on Euclidean distance.
+    #
+    #     Args:
+    #     - current_node (tuple): Coordinates of the current node.
+    #     - nodes (list of tuples): List of nodes where each node is represented as a tuple of coordinates.
+    #     - visited_nodes (set): Set of visited nodes represented as tuples of coordinates.
+    #
+    #     Returns:
+    #     - tuple or None: Coordinates of the closest unvisited node to the current node,
+    #       or None if all nodes are visited.
+    #
+    #     Notes:
+    #     - Assumes nodes are represented as tuples of coordinates (x, y).
+    #     - Uses Euclidean distance to determine proximity between nodes.
+    #     - Returns None if all nodes in the `nodes` list are visited.
+    #     """
+    #     min_distance = float('inf')
+    #     closest_node = None
+    #
+    #     # Iterate over all nodes and their attributes
+    #     for node_id, node_data in self.graph.nodes(data=True):
+    #         if not node_data['visited']:
+    #             node_position = node_id  # Assuming node_id is a tuple (x, y)
+    #             distance = self.map.get_distance_between_points(self.position, node_position)
+    #             if distance < min_distance:
+    #                 min_distance = distance
+    #                 closest_node = node_id
+    #
+    #     return closest_node
 
     def find_closest_unvisited_node_by_bfs(self) -> Union[Tuple[int, int], None]:
         """
@@ -426,6 +428,8 @@ class Drone:
         new_x = current_x + (speed if dx > 0 else -speed)
         new_y = current_y + (speed if dy > 0 else -speed)
 
+        self.battery.len_path += 1
+
         return new_x, new_y
 
     def decide_next_move(self, sensor_data: dict[str, Union[int, float]]):
@@ -449,11 +453,10 @@ class Drone:
         - Determines the direction towards the target_position considering obstacles.
         - Uses a basic heuristic to avoid obstacles, preferring directions with less obstruction.
         """
-
         if self.battery.is_dead():
             return
-        
-        if self.battery.duration < 40:
+          
+        if self.battery.is_going_to_empty() or self.battery.len_path + self.calculate_path_to_home() + 5 >= self.battery.duration:
             if not self.returning_home:
                 self.returning_home = True
                 self.current_path = nx.shortest_path(self.graph, source=(int(self.position[0]), int(self.position[1])),target=self.home_node)[1:]
@@ -488,21 +491,34 @@ class Drone:
         if path:
             self.current_path = path
 
-    def calculate_path_to_home(self):
+    def calculate_path_to_home(self) -> int:
+        """
+        Calculate the path to the home node.
+        Returns the number of nodes in the path.
+        """
         if not self.graph.has_node(self.home_node):
-            return
+            return 0
 
         if not self.graph.has_node((int(self.position[0]), int(self.position[1]))):
-            return
+            return 0
 
         try:
             self.home_path = nx.shortest_path(self.graph, source=(int(self.position[0]), int(self.position[1])),
                                               target=self.home_node)
+            print(self.home_path)
+            return len(self.home_path)
         except Exception as e:
             self.returning_home = False
+            return 0
+
+
 
     def follow_path_to_home(self):
+
         if not self.home_path:
+            while self.battery.len_path:
+                self.battery.charge()
+            self.returning_home = False
             return
 
         next_node = self.home_path.pop(0)
@@ -525,61 +541,32 @@ class Drone:
         if self.home_path:
             self.current_path = self.home_path
 
-    def return_to_home(self):
-        if not self.graph.has_node(self.home_node):
-            return
-
-        if not self.graph.has_node((int(self.position[0]), int(self.position[1]))):
-            return
-
-        try:
-            path_to_home = nx.shortest_path(self.graph, source=(int(self.position[0]), int(self.position[1])),
-                                            target=self.home_node)
-            print("Path to home found:", path_to_home)
-        except Exception as e:
-            return
-
-        for node in path_to_home:
-            while [int(self.position[0]), int(self.position[1])] != list(node):
-                new_position = self.move_one_step_towards(self.position, [node[0], node[1]])
-                if self.map.is_point_in_valid_spot(new_position, self.radius):
-                    self.position = [new_position[0], new_position[1]]
-                else:
-                    print("I'm stuck here while returning home")
-                    if not self.attempt_alternate_moves():
-                        print("Cannot find alternate move")
-                        return
-
-            if [node[0], node[1]] == list(self.home_node):
-                print("Drone has returned home")
-                break
-
-    def change_direction(self, left_distance, right_distance):
-        """
-        Determine a new direction when encountering an obstacle.
-
-        Args:
-        - current_direction (str): Current direction ('up', 'down', 'left', 'right').
-        - obstacle_direction (str): Direction towards the obstacle ('up', 'down', 'left', 'right').
-
-        Returns:
-        - str: New direction to attempt after encountering the obstacle.
-
-        Raises:
-        - ValueError: If current_direction or obstacle_direction is not one of 'up', 'down', 'left', 'right'.
-
-        Notes:
-        - Assumes valid input directions ('up', 'down', 'left', 'right').
-        - Determines a new direction opposite to the obstacle_direction to attempt to avoid the obstacle.
-        """
-        if left_distance > right_distance:
-            if not self.move("left"):  # Try to move left
-                if not self.move("right"):  # If left is blocked, try moving right
-                    self.move("backward")  # If both are blocked, try moving backward
-        else:
-            if not self.move("right"):  # Try to move right
-                if not self.move("left"):  # If right is blocked, try moving left
-                    self.move("backward")  # If both are blocked, try moving backward
+    # def change_direction(self, left_distance, right_distance):
+    #     """
+    #     Determine a new direction when encountering an obstacle.
+    #
+    #     Args:
+    #     - current_direction (str): Current direction ('up', 'down', 'left', 'right').
+    #     - obstacle_direction (str): Direction towards the obstacle ('up', 'down', 'left', 'right').
+    #
+    #     Returns:
+    #     - str: New direction to attempt after encountering the obstacle.
+    #
+    #     Raises:
+    #     - ValueError: If current_direction or obstacle_direction is not one of 'up', 'down', 'left', 'right'.
+    #
+    #     Notes:
+    #     - Assumes valid input directions ('up', 'down', 'left', 'right').
+    #     - Determines a new direction opposite to the obstacle_direction to attempt to avoid the obstacle.
+    #     """
+    #     if left_distance > right_distance:
+    #         if not self.move("left"):  # Try to move left
+    #             if not self.move("right"):  # If left is blocked, try moving right
+    #                 self.move("backward")  # If both are blocked, try moving backward
+    #     else:
+    #         if not self.move("right"):  # Try to move right
+    #             if not self.move("left"):  # If right is blocked, try moving left
+    #                 self.move("backward")  # If both are blocked, try moving backward
 
     def attempt_alternate_moves(self):
         """

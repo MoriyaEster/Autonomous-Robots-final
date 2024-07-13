@@ -1,13 +1,29 @@
 import time
-
-
 class Battery:
-    def __init__(self, duration: float):
-        self.duration: float = duration
-        self.start_time: float = time.time()
+    def __init__(self, duration: int):
+        self.len_path: int = 0
+        self.duration: int = duration
+        self.charging: bool = False
+
+
+    def buttery_running_out(self):
+        self.len_path += 1
 
     def is_dead(self) -> bool:
-        return (time.time() - self.start_time) >= self.duration
+        return self.len_path >= self.duration
 
-    def get_remaining_time(self) -> float:
-        return max(0, self.duration - (time.time() - self.start_time))
+    def is_going_to_empty(self) -> bool:
+        return self.len_path >= self.duration * 0.8
+
+    def get_remaining_battery(self) -> float:
+        return max(0, self.duration - self.len_path)
+
+    def charge(self):
+        if self.charging:
+            self.len_path -= 1
+            time.sleep(0.001)  # Simulate charging delay
+            if self.len_path <= 0:
+                self.len_path = 0
+                self.charging = False
+        else:
+            self.charging = True
