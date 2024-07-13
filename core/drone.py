@@ -27,7 +27,7 @@ class Drone:
         self.battery: Battery = Battery(battery_duration_in_seconds)
         self.returning_home = False
         self.home_path = []
-        self.min_distance_between_points: int = max(self.radius // 2 + 1, 6)
+        self.min_distance_between_points: int = max(self.radius // 2 + 1, 5)
         self.current_path = []
         self.home_point = self.find_valid_track_point(self.starting_position, map, self.radius)
         self.home_node = tuple(self.home_point)
@@ -399,6 +399,63 @@ class Drone:
 
         # If no unvisited node is found, return None
         return None
+    
+    
+    def find_farthest_unvisited_node(self) -> Union[Tuple[int, int], None]:
+        """
+        Find the unvisited node that is the farthest from any visited node using BFS.
+
+        Returns:
+        - tuple or None: Coordinates of the unvisited node that is farthest from any visited node,
+        or None if all nodes are visited.
+
+        Notes:
+        - Assumes nodes are represented as tuples of coordinates (x, y).
+        - Uses BFS to find the closest visited node for each unvisited node.
+        - Returns None if all nodes in the graph are visited.
+        """
+        # Step 1: Get all visited and unvisited nodes
+        visited_nodes = [node for node, data in self.graph.nodes(data=True) if data["visited"]]
+        unvisited_nodes = [node for node, data in self.graph.nodes(data=True) if not data["visited"]]
+
+        if not unvisited_nodes:
+            return None
+
+        farthest_node = None
+        max_distance = -1
+
+        # Step 2: For each unvisited node, perform BFS to find the closest visited node
+        for unvisited in unvisited_nodes:
+            queue = deque([(unvisited, 0)])  # (node, distance)
+            visited = set()
+
+            while queue:
+                current_node, distance = queue.popleft()
+                current_node = (int(current_node[0]), int(current_node[1]))
+                
+                if current_node in visited:
+                    continue
+
+                # Mark the current node as visited
+                visited.add(current_node)
+
+                # Check if the current node is one of the visited nodes
+                if current_node in visited_nodes:
+                    if distance > max_distance:
+                        max_distance = distance
+                        farthest_node = unvisited
+                    break
+
+                # Add all neighbors to the queue
+                neighbors = self.graph.neighbors(current_node)
+                for neighbor in neighbors:
+                    if neighbor not in visited:
+                        queue.append((neighbor, distance + 1))
+
+        return farthest_node
+
+
+
 
     def move_one_step_towards(self, current_position, desired_position):
         """
@@ -428,7 +485,6 @@ class Drone:
         new_x = current_x + (speed if dx > 0 else -speed)
         new_y = current_y + (speed if dy > 0 else -speed)
 
-        self.battery.len_path += 1
 
         return new_x, new_y
 
@@ -455,20 +511,22 @@ class Drone:
         """
         if self.battery.is_dead():
             return
-          
-        if self.battery.is_going_to_empty() or self.battery.len_path + self.calculate_path_to_home() + 5 >= self.battery.duration:
+
+        if self.battery.battery_low() or ((self.battery.power - self.calculate_path_to_home()) - 5 <= 0):
             if not self.returning_home:
                 self.returning_home = True
                 self.current_path = nx.shortest_path(self.graph, source=(int(self.position[0]), int(self.position[1])),target=self.home_node)[1:]
             if not self.current_path:
-                pass
+                while self.battery.power < self.battery.duration:
+                    self.battery.charging()
+                self.returning_home = False
 
         self.generate_nodes_based_on_sensor_data(sensor_data)
-        next_node = self.find_closest_unvisited_node_by_bfs()
         path = None
         if self.current_path:
             path = self.current_path
         else:
+            next_node = self.find_farthest_unvisited_node()
             try:
                 path = nx.shortest_path(self.graph, source=(int(self.position[0]), int(self.position[1])),target=next_node)[1:]
             except Exception as e:
@@ -491,11 +549,9 @@ class Drone:
         if path:
             self.current_path = path
 
-    def calculate_path_to_home(self) -> int:
-        """
-        Calculate the path to the home node.
-        Returns the number of nodes in the path.
-        """
+        self.battery.power -= 1
+
+    def calculate_path_to_home(self):
         if not self.graph.has_node(self.home_node):
             return 0
 
@@ -503,15 +559,15 @@ class Drone:
             return 0
 
         try:
-            self.home_path = nx.shortest_path(self.graph, source=(int(self.position[0]), int(self.position[1])),
+            home_path = nx.shortest_path(self.graph, source=(int(self.position[0]), int(self.position[1])),
                                               target=self.home_node)
             print(self.home_path)
             return len(self.home_path)
         except Exception as e:
-            self.returning_home = False
+            print(e)
             return 0
 
-
+        return len(home_path)
 
     def follow_path_to_home(self):
 

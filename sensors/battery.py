@@ -6,24 +6,20 @@ class Battery:
         self.charging: bool = False
 
 
-    def buttery_running_out(self):
-        self.len_path += 1
+class Battery:
+    def __init__(self, duration: int):
+        self.duration: int = duration
+        self.power: int = duration
 
     def is_dead(self) -> bool:
-        return self.len_path >= self.duration
+        return self.power <= 0
 
-    def is_going_to_empty(self) -> bool:
-        return self.len_path >= self.duration * 0.8
+    def get_remaining_time(self) -> float:
+        return max(0, self.power)
 
-    def get_remaining_battery(self) -> float:
-        return max(0, self.duration - self.len_path)
+    def battery_low(self):
+        return self.power <= self.duration * 0.2
 
-    def charge(self):
-        if self.charging:
-            self.len_path -= 1
-            time.sleep(0.001)  # Simulate charging delay
-            if self.len_path <= 0:
-                self.len_path = 0
-                self.charging = False
-        else:
-            self.charging = True
+    def charging(self):
+        self.power += 1
+        time.sleep(0.001)
