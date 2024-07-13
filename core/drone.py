@@ -221,8 +221,7 @@ class Drone:
         """
         # Add current position
         current_position_node = (int(self.position.copy()[0]), int(self.position.copy()[1]))
-        if current_position_node not in self.graph and self.map.is_point_in_valid_spot(current_position_node,
-                                                                                       self.radius):
+        if current_position_node not in self.graph and self.map.is_point_in_valid_spot(current_position_node, self.radius):
             self.graph.add_node(current_position_node, position=current_position_node, visited=True)
 
         front_distance = sensor_data['lidar_front']
@@ -556,13 +555,11 @@ class Drone:
             return 0
 
         if not self.graph.has_node((int(self.position[0]), int(self.position[1]))):
-            return 0
+            return 
 
         try:
             home_path = nx.shortest_path(self.graph, source=(int(self.position[0]), int(self.position[1])),
                                               target=self.home_node)
-            print(self.home_path)
-            return len(self.home_path)
         except Exception as e:
             print(e)
             return 0
@@ -570,11 +567,7 @@ class Drone:
         return len(home_path)
 
     def follow_path_to_home(self):
-
         if not self.home_path:
-            while self.battery.len_path:
-                self.battery.charge()
-            self.returning_home = False
             return
 
         next_node = self.home_path.pop(0)
