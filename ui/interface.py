@@ -15,7 +15,7 @@ class DroneSimulatorUI:
     def update(self):
         # Update the display
         self.map.display_map(self.screen, self.drone.position, self.drone.graph, self.drone.radius)
-        remaining_time = self.drone.battery.get_remaining_time()
+        remaining_time = self.drone.battery.get_remaining_battery()
         total_time = self.drone.battery.duration
         draw_battery_bar(self.screen, remaining_time, total_time)
 

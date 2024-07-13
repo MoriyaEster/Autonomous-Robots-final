@@ -1,4 +1,9 @@
 import time
+class Battery:
+    def __init__(self, duration: int):
+        self.len_path: int = 0
+        self.duration: int = duration
+        self.charging: bool = False
 
 
 class Battery:
