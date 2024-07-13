@@ -455,13 +455,13 @@ class Drone:
         """
         if self.battery.is_dead():
             return
-
+          
         if self.battery.is_going_to_empty() or self.battery.len_path + self.calculate_path_to_home() + 5 >= self.battery.duration:
             if not self.returning_home:
                 self.returning_home = True
-                self.calculate_path_to_home()
-            self.follow_path_to_home()
-            return
+                self.current_path = nx.shortest_path(self.graph, source=(int(self.position[0]), int(self.position[1])),target=self.home_node)[1:]
+            if not self.current_path:
+                pass
 
         self.generate_nodes_based_on_sensor_data(sensor_data)
         next_node = self.find_closest_unvisited_node_by_bfs()
@@ -470,15 +470,13 @@ class Drone:
             path = self.current_path
         else:
             try:
-                path = nx.shortest_path(self.graph, source=(int(self.position[0]), int(self.position[1])),
-                                        target=next_node)[1:]
+                path = nx.shortest_path(self.graph, source=(int(self.position[0]), int(self.position[1])),target=next_node)[1:]
             except Exception as e:
                 pass
         if path:
             next_node = path.pop(0)
         if next_node:
-            if self.map.get_distance_between_points((int(self.position[0]), int(self.position[1])),
-                                                    next_node) > self.speed_sensor.get_speed():
+            if self.map.get_distance_between_points((int(self.position[0]), int(self.position[1])),next_node) > self.speed_sensor.get_speed():
                 new_position = self.move_one_step_towards(self.position, [next_node[0], next_node[1]])
                 if self.map.is_point_in_valid_spot(new_position, self.radius):
                     self.position = [new_position[0], new_position[1]]
