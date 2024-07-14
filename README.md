@@ -74,24 +74,39 @@ This will start the simulation with a predefined map and display the drone's nav
 ## Project Structure
 
 ```
+Autonomous-Robots-final/
+│
+├── .venv/
+│
 ├── core/
-│   ├── drone.py         # Drone class definition and behavior
-│   └── map.py           # Map class for handling map loading and processing
+│   ├── __init__.py
+│   ├── drone.py
+│   ├── map.py
 │
 ├── sensors/
-│   ├── lidar.py         # LiDAR sensor simulation
-│   ├── gyroscope.py     # Gyroscope sensor simulation
-│   ├── optical_flow.py  # Optical Flow sensor simulation
-│   └── speed.py         # Speed sensor simulation
+│   ├── __init__.py
+│   ├── battery.py
+│   ├── gyroscope.py
+│   ├── lidar.py
+│   ├── optical_flow.py
+│   ├── speed.py
+│
+├── tracks/
+│   ├── p11.png
+│   ├── p12.png
+│   ├── p13.png
+│   ├── p14.png
+│   ├── p15.png
 │
 ├── ui/
-│   └── interface.py     # Pygame UI for drone simulation
+│   ├── __init__.py
+│   ├── interface.py
 │
 ├── utils/
-│   └── helper.py        # Helper functions for the project
+│   ├── helper.py
 │
-├── simulation.py        # Main script to run the simulation
-└── requirements.txt     # List of dependencies
+├── simulation.py
+
 ```
 
 ---
