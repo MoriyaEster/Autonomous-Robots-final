@@ -15,10 +15,11 @@ class DroneSimulatorUI:
     def update(self):
         # Update the display
         self.map.display_map(self.screen, self.drone.position, self.drone.graph, self.drone.radius)
-        remaining_time = self.drone.battery.get_remaining_time()
+        remaining_time = self.drone.battery.get_remaining_moves()
         total_time = self.drone.battery.duration
         draw_battery_bar(self.screen, remaining_time, total_time)
 
+        # drawing messages about the battery
         if self.drone.battery.is_dead():
             draw_battery_dead_message(self.screen)
         elif self.drone.battery.battery_low():
@@ -42,9 +43,3 @@ class DroneSimulatorUI:
             self.drone.decide_next_move(sensor_data)
             self.update()
             print(self.drone.battery.power)
-            if self.drone.battery.is_dead():
-                print("Battery died")
-            if self.drone.battery.battery_low():
-                print("Battery low")
-            # Uncomment for slower rendering
-            # sleep(0.05)
