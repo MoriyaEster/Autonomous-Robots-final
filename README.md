@@ -123,10 +123,12 @@ Defines the `Map` class, which handles loading and processing of the map file. I
 
 ### 3. sensors/
 
-- **lidar.py**: Simulates a LiDAR sensor for measuring distances to obstacles.
-- **gyroscope.py**: Simulates a gyroscope for detecting the drone's orientation.
-- **optical_flow.py**: Simulates an optical flow sensor for measuring the drone's movement.
-- **speed.py**: Simulates a speed sensor for measuring the drone's speed.
+- **battery.py:** Simulates a battery for monitoring the drone's power levels.
+- **lidar.py:** Simulates a LiDAR sensor for measuring distances to obstacles.
+- **gyroscope.py:** Simulates a gyroscope for detecting the drone's orientation.
+- **optical_flow.py:** Simulates an optical flow sensor for measuring the drone's movement.
+- **speed.py:** Simulates a speed sensor for measuring the drone's speed.
+
 
 ### 4. ui/interface.py
 
