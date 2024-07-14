@@ -1,28 +1,6 @@
 import random
 import pygame
 
-def add_noise(value, epsilon):
-    return value + random.uniform(-epsilon, epsilon)
-
-def rotate_point(point, angle, origin=(0, 0)):
-    from math import radians, cos, sin
-    angle = radians(angle)
-    ox, oy = origin
-    px, py = point
-
-    qx = ox + cos(angle) * (px - ox) - sin(angle) * (py - oy)
-    qy = oy + sin(angle) * (px - ox) + cos(angle) * (py - oy)
-    return qx, qy
-
-def load_map(file_path):
-    import pygame
-    return pygame.image.load(file_path)
-
-def draw_drone(screen, position, color=(0, 255, 0), radius=5):
-    pygame.draw.circle(screen, color, position, radius)
-
-def draw_home(screen, position, color=(255, 0, 255), radius=5):
-    pygame.draw.circle(screen, color, position, radius)
 
 def draw_battery_bar(screen, remaining_time, total_time, position=(10, 10), size=(100, 20), color=(0, 255, 0)):
     if total_time == 0:

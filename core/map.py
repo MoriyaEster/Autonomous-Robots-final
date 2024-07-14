@@ -30,7 +30,7 @@ class Map:
 
     def load_map(self):
         """
-               Load the map image from the file and scale it to a standard size.
+               Load the map image from the file and scale it to a standard size .
 
                Returns:
                - Surface: Pygame Surface object containing the loaded and scaled map image.
